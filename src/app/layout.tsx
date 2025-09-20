@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Manrope, Racing_Sans_One } from "next/font/google";
 import "./globals.css";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+// ✅ Manrope setup (body font)
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+  weight: ["200", "300", "400", "500", "600", "700", "800"],
 });
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+
+const racingSansOne = Racing_Sans_One({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  weight: "400", // only one weight allowed
 });
 
 export const metadata: Metadata = {
@@ -26,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${manrope.variable} ${racingSansOne.variable} antialiased`}
       >
         {children}
       </body>
