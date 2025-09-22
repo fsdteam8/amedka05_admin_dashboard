@@ -1,10 +1,10 @@
 import React from 'react'
-import OverView from './_components/OverView'
+import AgentsList from './_components/AgentsList'
 
 function page() {
   return (
     <div>
-      <OverView />
+        <AgentsList />
     </div>
   )
 }

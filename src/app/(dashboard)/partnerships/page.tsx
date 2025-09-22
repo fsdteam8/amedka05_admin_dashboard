@@ -1,10 +1,10 @@
 import React from 'react'
-import OverView from './_components/OverView'
+import Partnerships from './_components/Partnerships'
 
 function page() {
   return (
     <div>
-      <OverView />
+        <Partnerships />
     </div>
   )
 }

@@ -51,7 +51,7 @@ export default function Header() {
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex h-[100px] items-center justify-between px-6 bg-[#131313] shadow-md">
+    <div className="fixed top-0 left-0 right-0 z-50 flex h-[100px] items-center justify-between px-6 bg-[#131313] shadow-md border-b border-[#424242]">
       <div className="flex items-center space-x-2"></div>
 
       <div className="relative flex items-center space-x-3">
