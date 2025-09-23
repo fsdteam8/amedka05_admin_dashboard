@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
+  Edit,
   Eye,
   Plus,
   Trash2,
@@ -187,7 +188,7 @@ function AgentsList() {
                   Country
                 </TableHead>
                 <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4 text-end">
-                  <span className="">Action</span>
+                  <span className="mr-5">Action</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -235,10 +236,11 @@ function AgentsList() {
                         <Trash2 size={16} />
                       </Button>
                       <Button
+                        variant="ghost"
                         size="sm"
-                        className="px-3 py-1 bg-cyan-500 text-white hover:bg-cyan-600 transition-colors"
+                        className="p-1 h-auto text-gray-400 hover:text-white hover:bg-gray-600 transition-colors"
                       >
-                        Accept
+                        <Edit size={16} />
                       </Button>
                     </div>
                   </TableCell>

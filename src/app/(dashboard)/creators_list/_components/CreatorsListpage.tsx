@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  Eye,
+  Edit,
   Plus,
   Search,
   Trash2,
@@ -42,6 +42,56 @@ const creatorsData = [
     phone: "(229) 555-0109",
     link: "http://www.sofware.com",
   },
+  {
+    id: 4,
+    name: "Wade Warren",
+    email: "curtis.weaver@example.com",
+    phone: "(229) 555-0109",
+    link: "http://www.sofware.com",
+  },
+  {
+    id: 5,
+    name: "Wade Warren",
+    email: "curtis.weaver@example.com",
+    phone: "(229) 555-0109",
+    link: "http://www.sofware.com",
+  },
+  {
+    id: 6,
+    name: "Wade Warren",
+    email: "curtis.weaver@example.com",
+    phone: "(229) 555-0109",
+    link: "http://www.sofware.com",
+  },
+  {
+    id: 7,
+    name: "Wade Warren",
+    email: "curtis.weaver@example.com",
+    phone: "(229) 555-0109",
+    link: "http://www.sofware.com",
+  },
+
+  {
+    id: 8,
+    name: "Wade Warren",
+    email: "curtis.weaver@example.com",
+    phone: "(229) 555-0109",
+    link: "http://www.sofware.com",
+  },{
+    id: 9,
+    name: "Wade Warren",
+    email: "curtis.weaver@example.com",
+    phone: "(229) 555-0109",
+    link: "http://www.sofware.com",
+  },
+  {
+    id: 10,
+    name: "Wade Warren",
+    email: "curtis.weaver@example.com",
+    phone: "(229) 555-0109",
+    link: "http://www.sofware.com",
+  },
+
   // ... rest of your data
 ];
 
@@ -109,14 +159,14 @@ function CreatorsListpage() {
     <div className="text-white min-h-screen p-6">
       <div className="flex justify-between mb-10">
         <PageHeader
-          title="Creators Management"
-          breadcrumb="Dashboard > Creators Management"
+          title="Creators List Page "
+          breadcrumb="Dashboard > Creators List Page "
           btnText="Add Category"
           icon={Plus}
         />
 
         <div className="relative w-[400px]">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
+          <Search className="absolute left-4 top-[40%] -translate-y-1/2 text-slate-400 h-5 w-5" />
           <Input
             placeholder="Search..."
             className="pl-12 bg-slate-800 text-white border-slate-700 h-12 text-lg"
@@ -182,7 +232,7 @@ function CreatorsListpage() {
                         size="sm"
                         className="p-1 h-auto text-gray-400 hover:text-white hover:bg-gray-600 transition-colors"
                       >
-                        <Eye size={16} />
+                        <Edit size={16} />
                       </Button>
                       <Button
                         variant="ghost"

@@ -1,12 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, Plus, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -298,7 +292,7 @@ function MediaManagement() {
           <div className="flex items-center gap-1">
             {renderPaginationButtons()}
           </div>
-        </div> 
+        </div>
       </div>
     </div>
   );
