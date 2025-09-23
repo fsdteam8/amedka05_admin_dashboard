@@ -13,6 +13,7 @@ import {
   ShoppingBasket,
   Scissors,
   MessageSquare,
+  Settings,
   // Bell,
 } from "lucide-react";
 // import logoImage from "@/public/images/logo.svg";
@@ -31,6 +32,7 @@ const navigation = [
     href: "/partnerships",
     icon: DollarSign,
   },
+    { name: "Settings", href: "/setting", icon: Settings },
 ];
 
 export function Sidebar() {
