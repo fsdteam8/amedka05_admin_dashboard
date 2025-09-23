@@ -1,10 +1,10 @@
 import React from 'react'
-import OverView from './_components/OverView'
+import CreatorsManagementList from './CreatorsManagementList'
 
 function page() {
   return (
     <div>
-      <OverView />
+        <CreatorsManagementList />
     </div>
   )
 }

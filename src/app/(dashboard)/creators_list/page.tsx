@@ -1,10 +1,10 @@
 import React from 'react'
-import OverView from './_components/OverView'
+import CreatorsListpage from './_components/CreatorsListpage'
 
 function page() {
   return (
     <div>
-      <OverView />
+        <CreatorsListpage />
     </div>
   )
 }

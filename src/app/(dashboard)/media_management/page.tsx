@@ -1,10 +1,10 @@
 import React from 'react'
-import OverView from './_components/OverView'
+import MediaManagement from './_components/MediaManagement'
 
 function page() {
   return (
     <div>
-      <OverView />
+        <MediaManagement />
     </div>
   )
 }
