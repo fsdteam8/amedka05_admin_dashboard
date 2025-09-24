@@ -4,7 +4,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit,
-  Eye,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/DashboardHeader/pageHeader";
+import { AgentModal } from "@/components/modal/AgentModal";
 
 const creatorsData = [
   {
@@ -221,13 +221,14 @@ function AgentsList() {
                   </TableCell>
                   <TableCell className="px-4 py-4">
                     <div className="flex items-center gap-2 justify-end">
-                      <Button
+                      {/* <Button
                         variant="ghost"
                         size="sm"
                         className="p-1 h-auto text-gray-400 hover:text-white hover:bg-gray-600 transition-colors"
                       >
                         <Eye size={16} />
-                      </Button>
+                      </Button> */}
+                      <AgentModal />
                       <Button
                         variant="ghost"
                         size="sm"

@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  Eye,
   Plus,
   Search,
   Trash2,
@@ -26,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { CreatorModal } from "@/components/modal/CreatorModal";
 
 const creatorsData = [
   {
@@ -251,13 +251,14 @@ function CreatorsManagementList() {
                   </TableCell>
                   <TableCell className="px-4 py-4">
                     <div className="flex items-center gap-2 justify-end mr-9">
-                      <Button
+                      {/* <Button
                         variant="ghost"
                         size="sm"
                         className="p-1 h-auto text-gray-400 hover:text-white hover:bg-gray-600 transition-colors"
                       >
                         <Eye size={16} />
-                      </Button>
+                      </Button> */}
+                      <CreatorModal />
                       <Button
                         variant="ghost"
                         size="sm"
