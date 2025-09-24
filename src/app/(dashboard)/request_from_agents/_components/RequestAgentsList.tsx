@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  Eye,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/DashboardHeader/pageHeader";
+import { RequestAgentModal } from "@/components/modal/RequestAgentModal";
 
 const creatorsData = [
   {
@@ -230,19 +230,20 @@ function RequestAgentsList() {
                   </TableCell> */}
                   <TableCell className="px-4 py-4">
                     <div className="flex items-center gap-2 justify-end mr-6">
-                      <Button
+                      {/* <Button
                         variant="ghost"
                         size="sm"
                         className="p-1 h-auto text-gray-400 hover:text-white hover:bg-gray-600 transition-colors"
                       >
                         <Eye size={16} />
-                      </Button>
+                      </Button> */}
+                      <RequestAgentModal />
                       <Button
                         variant="ghost"
                         size="sm"
                         className="p-1 h-auto text-red-700 hover:text-white hover:bg-gray-600 transition-colors"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={16} /> 
                       </Button>
                       <Button
                         size="sm"
