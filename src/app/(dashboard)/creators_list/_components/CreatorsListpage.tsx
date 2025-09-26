@@ -169,7 +169,7 @@ function CreatorsListpage() {
           <Search className="absolute left-4 top-[40%] -translate-y-1/2 text-slate-400 h-5 w-5" />
           <Input
             placeholder="Search..."
-            className="pl-12 bg-slate-800 text-white border-slate-700 h-12 text-lg"
+            className="text-white bg-[#131313] border-slate-700 h-12 text-lg"
           />
         </div>
       </div>

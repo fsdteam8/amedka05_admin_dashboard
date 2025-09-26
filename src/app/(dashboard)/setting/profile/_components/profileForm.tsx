@@ -271,7 +271,9 @@ export default function ProfileForm() {
                             </div>
 
                         </div>
-                        <Button type="submit" className="bg-[linear-gradient(135deg,#7DD3DD_0%,#89CFF0_50%,#A7C8F7_100%)] text-[#131313]" >Save Changes</Button>
+                        <div className="flex justify-end">
+                            <Button type="submit" className="bg-[linear-gradient(135deg,#7DD3DD_0%,#89CFF0_50%,#A7C8F7_100%)] text-[#131313]" >Save Changes</Button>
+                        </div>
                     </form>
                 </Form>
             </div>
