@@ -1,5 +1,5 @@
 import React from 'react'
-import CreatorsManagementList from './CreatorsManagementList'
+import CreatorsManagementList from './_components/CreatorsManagementList'
 
 function page() {
   return (
