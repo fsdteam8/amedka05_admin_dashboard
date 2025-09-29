@@ -1,13 +1,13 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
-import { Pencil } from "lucide-react"
-import { useAvatarMutation } from "@/hooks/apiCalling"
+import { Loader2, Pencil } from "lucide-react"
+import { useAvatarMutation, useProfileQuery } from "@/hooks/apiCalling"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
+
 const formSchema = z.object({
     firstName: z.string().min(1, "First name is required"),
     lastName: z.string().min(1, "Last name is required"),
@@ -35,24 +36,45 @@ const formSchema = z.object({
 export default function ProfileForm() {
     const { data: session } = useSession()
     const token = (session?.user as { accessToken: string })?.accessToken
-
     const [imageFile, setImageFile] = useState<File | null>(null)
     const fileInputRef = useRef<HTMLInputElement | null>(null)
-
     const avatarMutation = useAvatarMutation(token, setImageFile)
-
+    const { data } = useProfileQuery(token)
+    const profile = data?.data
+    console.log(profile)
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             firstName: "",
             lastName: "",
-            email: "",
+            // email: "",
             jobTtile: "",
             bio: "",
             phoneNumber: "",
             location: "",
         },
     })
+
+
+
+    useEffect(() => {
+        if (data?.data) {
+            const user = data.data;
+            form.reset({
+                firstName: user.firstName || "",
+                lastName: user.lastName || "",
+                email: user.email || "",
+                phoneNumber: user.phoneNumber || "",
+                jobTtile: user.jobTitle || "",
+                bio: user.bio || "",
+                location: user.location || "",
+            });
+        }
+    }, [data?.data, form]);
+
+
+
+
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -97,6 +119,8 @@ export default function ProfileForm() {
                         >
                             {imageFile ? (
                                 <AvatarImage src={URL.createObjectURL(imageFile)} alt="Preview" />
+                            ) : profile?.profileImage ? (
+                                <AvatarImage src={profile.profileImage} alt="Profile Image" />
                             ) : (
                                 <AvatarFallback>PR</AvatarFallback>
                             )}
@@ -120,7 +144,7 @@ export default function ProfileForm() {
 
                     {imageFile && (
                         <Button type="button" onClick={handleUpload}>
-                            Upload
+                            Upload {avatarMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         </Button>
                     )}
                 </div>
@@ -181,6 +205,7 @@ export default function ProfileForm() {
                                     <FormLabel>Email Address</FormLabel>
                                     <FormControl>
                                         <Input
+                                            disabled
                                             type="email"
                                             placeholder="Email Address"
                                             className="py-3 bg-[#252525] border-[#252525]"
