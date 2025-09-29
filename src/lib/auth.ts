@@ -103,3 +103,48 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+export async function forgetPassword(payload: string) {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/forgot-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: payload,
+    }),
+  });
+
+  const resData = await response.json();
+  if (!response.ok) throw new Error(resData.message || "Failed to update password");
+  return resData;
+}
+
+export async function veryfyOtpApi(payload: { email: string; otp: string }) {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-email`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const resData = await response.json();
+  if (!response.ok) throw new Error(resData.message || "Failed to update password");
+  return resData;
+}
+
+export async function resetPassword(payload: { email: string; newPassword: string }) {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/reset-password-change`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const resData = await response.json();
+  if (!response.ok) throw new Error(resData.message || "Failed to update password");
+  return resData;
+}
+
