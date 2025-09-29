@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Manrope, Racing_Sans_One } from "next/font/google";
 import "./globals.css";
+import AuthProvider from "./provider/AuthProvider";
+import AppProvider from "./provider/AppProvider";
 
 // ✅ Manrope setup (body font)
 const manrope = Manrope({
@@ -30,7 +32,11 @@ export default function RootLayout({
       <body
         className={`${manrope.variable} ${racingSansOne.variable} antialiased`}
       >
-        {children}
+        <AppProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </AppProvider>
       </body>
     </html>
   );
