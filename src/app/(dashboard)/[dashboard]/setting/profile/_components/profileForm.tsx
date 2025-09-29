@@ -1,20 +1,15 @@
 "use client"
-import {
-    toast
-} from "sonner"
-import {
-    useForm
-} from "react-hook-form"
-import {
-    zodResolver
-} from "@hookform/resolvers/zod"
-import {
-    z
-} from "zod"
 
-import {
-    Button
-} from "@/components/ui/button"
+import { useRef, useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { useSession } from "next-auth/react"
+import { toast } from "sonner"
+import { Pencil } from "lucide-react"
+import { useAvatarMutation } from "@/hooks/apiCalling"
+
+import { Button } from "@/components/ui/button"
 import {
     Form,
     FormControl,
@@ -23,33 +18,40 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
-import {
-    Input
-} from "@/components/ui/input"
-import {
-    Textarea
-} from "@/components/ui/textarea"
-import { useRef, useState } from "react"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Pencil } from "lucide-react"
 
 const formSchema = z.object({
-    firstName: z.string().min(1),
-    lastName: z.string().min(1),
-    email: z.string(),
-    jobTtile: z.string().min(1),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    email: z.string().email("Invalid email"),
+    jobTtile: z.string().min(1, "Job title is required"),
     bio: z.string(),
-    phoneNumber: z.string().min(1),
-    location: z.string().min(1)
-});
+    phoneNumber: z.string().min(1, "Phone number is required"),
+    location: z.string().min(1, "Location is required"),
+})
 
 export default function ProfileForm() {
-    const [imageFile, setImageFile] = useState<File | null>(null);
+    const { data: session } = useSession()
+    const token = (session?.user as { accessToken: string })?.accessToken
+
+    const [imageFile, setImageFile] = useState<File | null>(null)
     const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+    const avatarMutation = useAvatarMutation(token, setImageFile)
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-
+        defaultValues: {
+            firstName: "",
+            lastName: "",
+            email: "",
+            jobTtile: "",
+            bio: "",
+            phoneNumber: "",
+            location: "",
+        },
     })
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,32 +61,35 @@ export default function ProfileForm() {
         }
     }
 
-    // handle upload button
     const handleUpload = () => {
         if (imageFile) {
-            console.log("Uploading file:", imageFile)
+            avatarMutation.mutate(imageFile)
+        } else {
+            toast.error("Please select an image first")
         }
     }
 
     function onSubmit(values: z.infer<typeof formSchema>) {
         try {
-            console.log(values);
+            console.log(values)
             toast(
                 <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
                     <code className="text-white">{JSON.stringify(values, null, 2)}</code>
                 </pre>
-            );
+            )
         } catch (error) {
-            console.error("Form submission error", error);
-            toast.error("Failed to submit the form. Please try again.");
+            console.error("Form submission error", error)
+            toast.error("Failed to submit the form. Please try again.")
         }
     }
 
     return (
         <div className="border py-7 px-[30px] border-[#1F2937] rounded-lg bg-[#1A1A1A]">
-            <p className="text  font-bold text-[19px]">Profile Settings</p>
-            <div className="flex gap-10 py-10 ">
-                <div className="my-5 flex  flex-col items-center gap-4 ">
+            <p className="font-bold text-[19px]">Profile Settings</p>
+
+            <div className="flex gap-10 py-10">
+                {/* Avatar Upload Section */}
+                <div className="my-5 flex flex-col items-center gap-4">
                     <div className="relative">
                         <Avatar
                             className="h-32 w-32 text-black cursor-pointer"
@@ -96,8 +101,12 @@ export default function ProfileForm() {
                                 <AvatarFallback>PR</AvatarFallback>
                             )}
                         </Avatar>
-                        <div  onClick={() => fileInputRef.current?.click()} className="absolute bottom-2 border-2 border-white right-0 bg-[#7DD3DD] h-8 w-8 rounded-full flex items-center justify-center cursor-pointer">
-                            <Pencil  size={20} className="text-[#F8F9FA]  " />
+
+                        <div
+                            onClick={() => fileInputRef.current?.click()}
+                            className="absolute bottom-2 right-0 h-8 w-8 rounded-full border-2 border-white bg-[#7DD3DD] flex items-center justify-center cursor-pointer"
+                        >
+                            <Pencil size={20} className="text-[#F8F9FA]" />
                         </div>
                     </div>
 
@@ -115,13 +124,15 @@ export default function ProfileForm() {
                         </Button>
                     )}
                 </div>
+
+                {/* Profile Info Form */}
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full   mx-auto py-5">
-
+                    <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className="space-y-8 w-full mx-auto py-5"
+                    >
                         <div className="grid grid-cols-12 gap-4">
-
                             <div className="col-span-6">
-
                                 <FormField
                                     control={form.control}
                                     name="firstName"
@@ -130,12 +141,11 @@ export default function ProfileForm() {
                                             <FormLabel>First Name</FormLabel>
                                             <FormControl>
                                                 <Input
-                                                    className="py-3 bg-[#252525] border-[#252525]"
                                                     placeholder="First Name"
-                                                    type=""
-                                                    {...field} />
+                                                    className="py-3 bg-[#252525] border-[#252525]"
+                                                    {...field}
+                                                />
                                             </FormControl>
-
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -143,7 +153,6 @@ export default function ProfileForm() {
                             </div>
 
                             <div className="col-span-6">
-
                                 <FormField
                                     control={form.control}
                                     name="lastName"
@@ -154,16 +163,14 @@ export default function ProfileForm() {
                                                 <Input
                                                     placeholder="Last Name"
                                                     className="py-3 bg-[#252525] border-[#252525]"
-                                                    type=""
-                                                    {...field} />
+                                                    {...field}
+                                                />
                                             </FormControl>
-
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
                             </div>
-
                         </div>
 
                         <FormField
@@ -174,12 +181,12 @@ export default function ProfileForm() {
                                     <FormLabel>Email Address</FormLabel>
                                     <FormControl>
                                         <Input
+                                            type="email"
                                             placeholder="Email Address"
                                             className="py-3 bg-[#252525] border-[#252525]"
-                                            type="email"
-                                            {...field} />
+                                            {...field}
+                                        />
                                     </FormControl>
-
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -195,10 +202,9 @@ export default function ProfileForm() {
                                         <Input
                                             placeholder="Job Title"
                                             className="py-3 bg-[#252525] border-[#252525]"
-                                            type=""
-                                            {...field} />
+                                            {...field}
+                                        />
                                     </FormControl>
-
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -218,16 +224,13 @@ export default function ProfileForm() {
                                             {...field}
                                         />
                                     </FormControl>
-
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
 
                         <div className="grid grid-cols-12 gap-4">
-
                             <div className="col-span-6">
-
                                 <FormField
                                     control={form.control}
                                     name="phoneNumber"
@@ -238,10 +241,9 @@ export default function ProfileForm() {
                                                 <Input
                                                     placeholder="Phone Number"
                                                     className="py-3 bg-[#252525] border-[#252525]"
-                                                    type=""
-                                                    {...field} />
+                                                    {...field}
+                                                />
                                             </FormControl>
-
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -249,7 +251,6 @@ export default function ProfileForm() {
                             </div>
 
                             <div className="col-span-6">
-
                                 <FormField
                                     control={form.control}
                                     name="location"
@@ -260,22 +261,25 @@ export default function ProfileForm() {
                                                 <Input
                                                     placeholder="Location"
                                                     className="py-3 bg-[#252525] border-[#252525]"
-                                                    type=""
-                                                    {...field} />
+                                                    {...field}
+                                                />
                                             </FormControl>
-
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
                             </div>
-
                         </div>
-                        <Button type="submit" className="bg-[linear-gradient(135deg,#7DD3DD_0%,#89CFF0_50%,#A7C8F7_100%)] text-[#131313]" >Save Changes</Button>
+
+                        <Button
+                            type="submit"
+                            className="bg-[linear-gradient(135deg,#7DD3DD_0%,#89CFF0_50%,#A7C8F7_100%)] text-[#131313]"
+                        >
+                            Save Changes
+                        </Button>
                     </form>
                 </Form>
             </div>
-
         </div>
     )
 }
