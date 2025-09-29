@@ -258,7 +258,7 @@ function TripsManagement() {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between p-6">
+      <div className="flex items-center justify-between p-6"> 
         <div className="text-sm text-gray-400">
           Showing {startItem} to {endItem} of {tripsData.length} results
         </div>
