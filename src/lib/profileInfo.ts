@@ -37,3 +37,29 @@ export async function getProfile(token: string): Promise<ProfileResponse> {
   }
   return resData
 }
+
+
+export interface ProfileUpdatePayload {
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  jobTitle?: string;
+  bio?: string;
+  location?: string;
+}
+
+export async function updateProfileInfo(token: string, payload: ProfileUpdatePayload) {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/setting/profile`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const resData = await response.json();
+  if (!response.ok) throw new Error(resData.message || "Failed to update profile");
+  return resData;
+}
