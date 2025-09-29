@@ -13,24 +13,21 @@ import {
   Scissors,
   MessageSquare,
   Settings,
-  // Bell,
 } from "lucide-react";
 import { useState } from "react";
 import { LogoutModal } from "../LogoutModal";
-// import logoImage from "@/public/images/logo.svg";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Creators Management", href: "/dashboard/creators_management", icon: LayoutDashboard },
-  { name: "Creators List Page ", href: "/dashboard/creators_list", icon: Grip },
+  { name: "Creators List Page", href: "/dashboard/creators_list", icon: Grip },
   { name: "Request From Agents", href: "/dashboard/request_from_agents", icon: ShoppingBasket },
   { name: "Agents Management", href: "/dashboard/agents_lists", icon: ShoppingCart },
-  { name: "Trips Management ", href: "/dashboard/trips_management", icon: ShoppingCart },
-  // { name: "Offers", href: "/offer", icon: FileText },
-  { name: "Media Management ", href: "/dashboard/media_management", icon: MessageSquare },
-  { name: "Contacts Management ", href: "/dashboard/contacts_management", icon: Scissors },
+  { name: "Trips Management", href: "/dashboard/trips_management", icon: ShoppingCart },
+  { name: "Media Management", href: "/dashboard/media_management", icon: MessageSquare },
+  { name: "Contacts Management", href: "/dashboard/contacts_management", icon: Scissors },
   {
-    name: "Partnerships & Collaborati ons",
+    name: "Partnerships & Collaborations",
     href: "/dashboard/partnerships",
     icon: DollarSign,
   },
@@ -38,8 +35,7 @@ const navigation = [
 ];
 
 export function Sidebar() {
-  const [open, setOpen] = useState(false)
-
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
   return (
@@ -55,8 +51,7 @@ export function Sidebar() {
       <nav className="flex-1 space-y-4 flex flex-col items-center justify-start overflow-y-auto mt-3">
         {navigation.map((item) => {
           const isActive =
-            pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href));
+            pathname === item.href || pathname.startsWith(item.href + "/dashboard");
 
           return (
             <Link
@@ -87,7 +82,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-
 
       {/* Logout fixed at bottom */}
       <div className="p-3" onClick={() => setOpen(true)}>

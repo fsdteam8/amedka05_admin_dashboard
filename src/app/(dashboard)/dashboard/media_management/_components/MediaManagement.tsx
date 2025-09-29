@@ -1,12 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, Plus, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -18,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/DashboardHeader/pageHeader";
 import Image from "next/image";
+import { UploadModal } from "@/components/modal/UploadModal";
 
 const creatorsData = [
   {
@@ -170,35 +165,20 @@ function MediaManagement() {
       <div className="flex justify-between mb-10">
         <div>
           <PageHeader
-            title="Media Management"
+            title="Media Management "
             breadcrumb="Plan, track, and manage every event with ease."
-            // btnLink="/dashboard/category/add"
             btnText="Add Category"
             icon={Plus}
           />
         </div>
 
-        {/* <div className="flex gap-4">
-          <div className="w-[200px]">
-            <Select>
-              <SelectTrigger className="w-full h-[48px] bg-slate-800 text-white border-slate-700">
-                <SelectValue placeholder="Select option" />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-900 text-white">
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="relative [400px]">
-            <Search className="absolute left-4 top-[40%] -translate-y-1/2 text-slate-400 h-5 w-5" />
-            <Input
-              placeholder="Search..."
-              className="pl-12 bg-slate-800 text-white border-slate-700 h-12 text-lg"
-            />
-          </div>
-        </div> */}
+        <div className="">
+          {/* <Button className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Create New Trip
+                </Button> */}
+          <UploadModal />
+        </div>
       </div>
       <div className="bg-[#2A2A2A] rounded-lg border border-gray-700">
         {/* Table Container */}

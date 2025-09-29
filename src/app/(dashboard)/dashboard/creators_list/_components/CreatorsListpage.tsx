@@ -1,13 +1,6 @@
 "use client";
-import React, { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Edit,
-  Plus,
-  Search,
-  Trash2,
-} from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, Plus, Search, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,89 +12,102 @@ import {
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/DashboardHeader/pageHeader";
 import { Input } from "@/components/ui/input";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DeleteDialog } from "@/components/modal/DeleteModal";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { CreatorModal } from "@/components/modal/CreatorModal";
+import { UpdateCreator } from "@/components/modal/UpdateCreator";
 
-const creatorsData = [
-  {
-    id: 1,
-    name: "John Smith",
-    email: "rajul123@gmail.com",
-    phone: "(208) 555-0112",
-    link: "http://www.xonwork.com",
-  },
-  {
-    id: 2,
-    name: "Kristin Watson",
-    email: "felicia.reid@example.com",
-    phone: "(505) 555-0125",
-    link: "http://www.treequote.com",
-  },
-  {
-    id: 3,
-    name: "Wade Warren",
-    email: "curtis.weaver@example.com",
-    phone: "(229) 555-0109",
-    link: "http://www.sofware.com",
-  },
-  {
-    id: 4,
-    name: "Wade Warren",
-    email: "curtis.weaver@example.com",
-    phone: "(229) 555-0109",
-    link: "http://www.sofware.com",
-  },
-  {
-    id: 5,
-    name: "Wade Warren",
-    email: "curtis.weaver@example.com",
-    phone: "(229) 555-0109",
-    link: "http://www.sofware.com",
-  },
-  {
-    id: 6,
-    name: "Wade Warren",
-    email: "curtis.weaver@example.com",
-    phone: "(229) 555-0109",
-    link: "http://www.sofware.com",
-  },
-  {
-    id: 7,
-    name: "Wade Warren",
-    email: "curtis.weaver@example.com",
-    phone: "(229) 555-0109",
-    link: "http://www.sofware.com",
-  },
+interface SocialMedia {
+  platform: string;
+  link: string;
+  followers: number;
+  _id: string;
+}
 
-  {
-    id: 8,
-    name: "Wade Warren",
-    email: "curtis.weaver@example.com",
-    phone: "(229) 555-0109",
-    link: "http://www.sofware.com",
-  },{
-    id: 9,
-    name: "Wade Warren",
-    email: "curtis.weaver@example.com",
-    phone: "(229) 555-0109",
-    link: "http://www.sofware.com",
-  },
-  {
-    id: 10,
-    name: "Wade Warren",
-    email: "curtis.weaver@example.com",
-    phone: "(229) 555-0109",
-    link: "http://www.sofware.com",
-  },
-
-  // ... rest of your data
-];
+interface Creator {
+  _id: string;
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  socialMedia: SocialMedia[];
+}
 
 function CreatorsListpage() {
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 12;
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const queryClient = useQueryClient();
   const itemsPerPage = 10;
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, creatorsData.length);
+  const { data: session } = useSession();
+  const token = (session?.user as { accessToken: string })?.accessToken;
 
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedCreatorId, setSelectedCreatorId] = useState<string | null>(
+    null
+  );
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+      setCurrentPage(1); // reset to first page on search
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Fetch creators
+  const { data, isLoading } = useQuery({
+    queryKey: ["creatorsData", currentPage, debouncedQuery],
+    queryFn: async () => {
+      const url = new URL(`${process.env.NEXT_PUBLIC_BACKEND_URL}/creator`);
+      url.searchParams.set("page", currentPage.toString());
+      url.searchParams.set("limit", itemsPerPage.toString());
+      if (debouncedQuery) url.searchParams.set("searchTerm", debouncedQuery);
+
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error("Failed to fetch creators");
+      return res.json();
+    },
+  });
+
+  const creatorsData: Creator[] = data?.data?.data || [];
+  const meta = data?.data?.meta;
+  const totalPages = meta?.total ? Math.ceil(meta.total / meta.limit) : 1;
+  const startItem = (currentPage - 1) * (meta?.limit || 10) + 1;
+  const endItem = Math.min(currentPage * (meta?.limit || 10), meta?.total || 0);
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/creator/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to delete creator");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["creatorsData"] });
+      setDeleteDialogOpen(false);
+      setSelectedCreatorId(null);
+      toast.success(data.message || "Creator deleted successfully");
+    },
+    onError: (err) => {
+      toast.error((err as Error).message || "Failed to delete creator");
+    },
+  });
+
+  // Pagination buttons
   const renderPaginationButtons = () => {
     const buttons = [];
     const maxVisiblePages = 5;
@@ -155,12 +161,21 @@ function CreatorsListpage() {
     return buttons;
   };
 
+  const handleDeleteClick = (id: string) => {
+    setSelectedCreatorId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedCreatorId) deleteMutation.mutate(selectedCreatorId);
+  };
+
   return (
     <div className="text-white min-h-screen p-6">
       <div className="flex justify-between mb-10">
         <PageHeader
-          title="Creators List Page "
-          breadcrumb="Dashboard > Creators List Page "
+          title="Creators List Page"
+          breadcrumb="Dashboard > Creators List Page"
           btnText="Add Category"
           icon={Plus}
         />
@@ -169,16 +184,16 @@ function CreatorsListpage() {
           <Search className="absolute left-4 top-[40%] -translate-y-1/2 text-slate-400 h-5 w-5" />
           <Input
             placeholder="Search..."
-            className="pl-12 bg-slate-800 text-white border-slate-700 h-12 text-lg"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="text-white bg-[#131313] border-slate-700 h-12 text-lg"
           />
         </div>
       </div>
 
       <div className="bg-[#2A2A2A] rounded-lg border border-gray-700">
-        {/* Table Container */}
         <div className="overflow-x-auto">
           <Table className="w-full table-fixed">
-            {/* Table Header */}
             <TableHeader>
               <TableRow className="border-b border-gray-600 hover:bg-transparent">
                 <TableHead className="w-[20%] text-gray-300 font-medium bg-gray-700 h-12 px-4">
@@ -199,67 +214,95 @@ function CreatorsListpage() {
               </TableRow>
             </TableHeader>
 
-            {/* Table Body */}
             <TableBody>
-              {creatorsData.map((creator) => (
-                <TableRow
-                  key={creator.id}
-                  className="border-b border-[#B6B6B633] hover:bg-gray-750"
-                >
-                  <TableCell className="text-gray-200 px-4 py-4">
-                    {creator.name}
-                  </TableCell>
-                  <TableCell className="text-gray-200 px-4 py-4">
-                    {creator.email}
-                  </TableCell>
-                  <TableCell className="text-gray-200 px-4 py-4">
-                    {creator.phone}
-                  </TableCell>
-                  <TableCell className="px-4 py-4 truncate">
-                    <a
-                      href={creator.link}
-                      className="text-blue-400 hover:text-blue-300 underline transition-colors"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {creator.link}
-                    </a>
-                  </TableCell>
-                  <TableCell className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-1 h-auto text-gray-400 hover:text-white hover:bg-gray-600 transition-colors"
-                      >
-                        <Edit size={16} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-1 h-auto text-red-700 hover:text-white hover:bg-gray-600 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-6">
+                    Loading...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : creatorsData.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="text-center py-6 text-gray-400"
+                  >
+                    No creators found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                creatorsData.map((creator) => (
+                  <TableRow
+                    key={creator._id}
+                    className="border-b border-[#B6B6B633] hover:bg-gray-750"
+                  >
+                    <TableCell className="text-gray-200 px-4 py-4">
+                      {creator.fullName}
+                    </TableCell>
+                    <TableCell className="text-gray-200 px-4 py-4">
+                      {creator.email}
+                    </TableCell>
+                    <TableCell className="text-gray-200 px-4 py-4">
+                      {creator.phoneNumber}
+                    </TableCell>
+                    <TableCell className="px-4 py-4 truncate">
+                      {creator.socialMedia?.[0] && (
+                        <a
+                          href={creator.socialMedia[0].link}
+                          className="text-blue-400 hover:text-blue-300 underline transition-colors"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {creator.socialMedia[0].platform}
+                        </a>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-4 py-4">
+                      <div className="flex items-center gap-2">
+                        <UpdateCreator creatorId={creator._id} />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-1 h-auto text-blue-500 hover:text-white hover:bg-gray-600 transition-colors"
+                        >
+                          <CreatorModal createorsId={creator._id} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-1 h-auto text-red-700 hover:text-white hover:bg-gray-600 transition-colors"
+                          onClick={() => handleDeleteClick(creator._id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-700">
-          <div className="text-sm text-gray-400">
-            Showing {startItem} to {endItem} of {totalPages} results
+        {meta?.total > (meta?.limit || 10) && (
+          <div className="flex items-center justify-between p-6 border-t border-gray-700">
+            <div className="text-sm text-gray-400">
+              Showing {startItem} to {endItem} of {meta?.total} results
+            </div>
+            <div className="flex items-center gap-1">
+              {renderPaginationButtons()}
+            </div>
           </div>
-
-          <div className="flex items-center gap-1">
-            {renderPaginationButtons()}
-          </div>
-        </div>
+        )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }
