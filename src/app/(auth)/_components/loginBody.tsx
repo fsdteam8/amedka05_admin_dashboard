@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 // import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
+import Link from "next/link";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -159,9 +160,18 @@ const LoginForm = () => {
                     </Label>
                     <FormMessage className="text-red-500" />
                   </FormItem>
+
                 </div>
               )}
             />
+            <div>
+              <Link
+                href="/forget-password"
+                className="text-[#7DD3DD] text-base font-medium leading-[120%] "
+              >
+                Forgot Password?
+              </Link>
+            </div>
 
             <Button
               disabled={isLoading || !form.watch("rememberMe")}
