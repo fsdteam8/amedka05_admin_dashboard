@@ -1,6 +1,12 @@
 "use client";
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, Eye, Plus, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Edit,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -12,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/DashboardHeader/pageHeader";
 import Image from "next/image";
+import { CreateCollaboratModal } from "@/components/modal/CreateCollaboratModal";
 
 const creatorsData = [
   {
@@ -162,37 +169,16 @@ function MediaManagement() {
   return (
     <div className="text-white min-h-screen p-6">
       <div className="flex justify-between mb-10">
-        <div>
-          <PageHeader
-            title="Media Management"
-            breadcrumb="Plan, track, and manage every event with ease."
-            // btnLink="/dashboard/category/add"
-            btnText="Add Category"
-            icon={Plus}
-          />
-        </div>
+        <PageHeader
+          title="Partnerships & Collaborations"
+          breadcrumb="Plan, organize, and oversee every journey with ease."
+          btnText="Add Category"
+          icon={Plus}
+        />
 
-        {/* <div className="flex gap-4">
-          <div className="w-[200px]">
-            <Select>
-              <SelectTrigger className="w-full h-[48px] bg-slate-800 text-white border-slate-700">
-                <SelectValue placeholder="Select option" />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-900 text-white">
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="relative [400px]">
-            <Search className="absolute left-4 top-[40%] -translate-y-1/2 text-slate-400 h-5 w-5" />
-            <Input
-              placeholder="Search..."
-              className="pl-12 bg-slate-800 text-white border-slate-700 h-12 text-lg"
-            />
-          </div>
-        </div> */}
+        <div className="">
+          <CreateCollaboratModal />
+        </div>
       </div>
       <div className="bg-[#2A2A2A] rounded-lg border border-gray-700">
         {/* Table Container */}
@@ -255,13 +241,13 @@ function MediaManagement() {
                   </TableCell> */}
                   <TableCell className="px-4 py-4">
                     <div className="flex items-center justify-end gap-2 mr-7">
-                      <Button
+                      {/* <Button
                         variant="ghost"
                         size="sm"
                         className="p-1 h-auto text-gray-400 hover:text-white hover:bg-gray-600 transition-colors"
                       >
                         <Eye size={16} />
-                      </Button>
+                      </Button> */}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -270,10 +256,11 @@ function MediaManagement() {
                         <Trash2 size={16} />
                       </Button>
                       <Button
+                        variant="ghost"
                         size="sm"
-                        className="px-3 py-1 bg-cyan-500 text-white hover:bg-cyan-600 transition-colors"
+                        className="p-1 h-auto hover:text-white hover:bg-gray-600 transition-colors"
                       >
-                        Accept
+                        <Edit size={16} />
                       </Button>
                     </div>
                   </TableCell>
