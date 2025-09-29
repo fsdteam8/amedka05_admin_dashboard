@@ -1,9 +1,6 @@
 "use client"
 
 import {
-  toast
-} from "sonner"
-import {
   useForm
 } from "react-hook-form"
 import {
@@ -26,32 +23,39 @@ import {
 import {
   PasswordInput
 } from "@/components/ui/password-input"
+import { useChnagePassword } from "@/hooks/apiCalling"
+import { useSession } from "next-auth/react"
+import { Loader2 } from "lucide-react"
 
-const formSchema = z.object({
-  currentPassword: z.string(),
-  newPassword: z.string(),
-  confirmPassword: z.string()
-});
+const formSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .min(6, "New password must be at least 6 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 export default function PasswordForm() {
+  const { data: session } = useSession()
+  const token = (session?.user as { accessToken: string })?.accessToken
+  const changePasswordMutation = useChnagePassword(token);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+  });
 
-  })
+
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      console.log(values);
-      toast(
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(values, null, 2)}</code>
-        </pre>
-      );
-    } catch (error) {
-      console.error("Form submission error", error);
-      toast.error("Failed to submit the form. Please try again.");
-    }
+    changePasswordMutation.mutate({
+      oldPassword: values.currentPassword,
+      newPassword: values.newPassword,
+    });
   }
 
   return (
@@ -105,7 +109,7 @@ export default function PasswordForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="bg-[linear-gradient(135deg,#7DD3DD_0%,#89CFF0_50%,#A7C8F7_100%)] text-[#131313]" >Save Changes</Button>
+          <Button type="submit" className="bg-[linear-gradient(135deg,#7DD3DD_0%,#89CFF0_50%,#A7C8F7_100%)] text-[#131313]" >Save Changes {changePasswordMutation.isPending && <Loader2 className="animate-spin ml-2" />}</Button>
         </form>
       </Form>
     </div>

@@ -7,7 +7,7 @@ import { z } from "zod"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import { Loader2, Pencil } from "lucide-react"
-import { useAvatarMutation, useProfileQuery } from "@/hooks/apiCalling"
+import { useAvatarMutation, useProfileInfoUpdate, useProfileQuery } from "@/hooks/apiCalling"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -39,9 +39,11 @@ export default function ProfileForm() {
     const [imageFile, setImageFile] = useState<File | null>(null)
     const fileInputRef = useRef<HTMLInputElement | null>(null)
     const avatarMutation = useAvatarMutation(token, setImageFile)
+    const profileMutation = useProfileInfoUpdate(token);
+
     const { data } = useProfileQuery(token)
     const profile = data?.data
-    console.log(profile)
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -54,8 +56,6 @@ export default function ProfileForm() {
             location: "",
         },
     })
-
-
 
     useEffect(() => {
         if (data?.data) {
@@ -71,9 +71,6 @@ export default function ProfileForm() {
             });
         }
     }, [data?.data, form]);
-
-
-
 
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,17 +89,14 @@ export default function ProfileForm() {
     }
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-        try {
-            console.log(values)
-            toast(
-                <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-                    <code className="text-white">{JSON.stringify(values, null, 2)}</code>
-                </pre>
-            )
-        } catch (error) {
-            console.error("Form submission error", error)
-            toast.error("Failed to submit the form. Please try again.")
-        }
+        profileMutation.mutate({
+            firstName: values.firstName,
+            lastName: values.lastName,
+            phoneNumber: values.phoneNumber,
+            jobTitle: values.jobTtile,
+            bio: values.bio,
+            location: values.location,
+        });
     }
 
     return (
@@ -295,13 +289,14 @@ export default function ProfileForm() {
                                 />
                             </div>
                         </div>
-
                         <Button
                             type="submit"
+                            disabled={profileMutation.isPending}
                             className="bg-[linear-gradient(135deg,#7DD3DD_0%,#89CFF0_50%,#A7C8F7_100%)] text-[#131313]"
                         >
-                            Save Changes
+                            Save Changes {profileMutation.isPending && <Loader2 className="animate-spin mr-2" />}
                         </Button>
+
                     </form>
                 </Form>
             </div>
