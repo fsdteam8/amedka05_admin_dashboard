@@ -162,6 +162,7 @@ function CreatorsManagementList() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["creatorsData"] });
       toast.success(data.message || "Creator deleted successfully");
+      setDeleteDialogOpen(false);
     },
     onError: (err) => {
       toast.error((err as Error).message || "Failed to delete creator");
