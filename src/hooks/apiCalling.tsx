@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { getProfile, ProfileUpdatePayload, updateProfileInfo, uploadAvatar } from "@/lib/profileInfo"
+import { changePassword, getProfile, ProfileUpdatePayload, updateProfileInfo, uploadAvatar } from "@/lib/profileInfo"
 import { ProfileResponse } from "@/types/userDataType"
 
 export function useAvatarMutation(
@@ -54,3 +54,17 @@ export function useProfileInfoUpdate(token: string, onSuccessCallback?: () => vo
   });
 }
 
+export function useChnagePassword(token: string, onSuccessCallback?: () => void) {
+
+  return useMutation({
+    mutationFn: (payload: { oldPassword: string; newPassword: string }) => changePassword(token, payload),
+    onSuccess: () => {
+      toast.success("Password updated successfully");
+      if (onSuccessCallback) onSuccessCallback();
+    },
+    onError: (error: unknown) => {
+      if (error instanceof Error) toast.error(error.message || "Update failed");
+      else toast.error("Update failed");
+    },
+  });
+}
