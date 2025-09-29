@@ -1,6 +1,7 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { uploadAvatar } from "@/lib/profileInfo"
+import { getProfile, uploadAvatar } from "@/lib/profileInfo"
+import { ProfileResponse } from "@/types/userDataType"
 
 export function useAvatarMutation(
   token: string,
@@ -13,7 +14,7 @@ export function useAvatarMutation(
     onSuccess: () => {
       toast.success("Avatar updated successfully")
       queryClient.invalidateQueries({ queryKey: ["avatar"] })
-      setAvatar(null) 
+      setAvatar(null)
     },
     onError: (error: unknown) => {
       if (error instanceof Error) {
@@ -22,5 +23,16 @@ export function useAvatarMutation(
         toast.error("Image upload failed")
       }
     },
+  })
+}
+
+export function useProfileQuery(token: string | undefined) {
+  return useQuery<ProfileResponse>({
+    queryKey: ["me"],
+    queryFn: () => {
+      if (!token) throw new Error("Token is missing")
+      return getProfile(token)
+    },
+    enabled: !!token,
   })
 }
