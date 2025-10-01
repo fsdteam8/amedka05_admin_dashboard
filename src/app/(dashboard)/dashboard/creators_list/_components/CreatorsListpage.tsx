@@ -18,6 +18,7 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { CreatorModal } from "@/components/modal/CreatorModal";
 import { UpdateCreator } from "@/components/modal/UpdateCreator";
+import { Skeleton } from "@/components/ui/skeleton"; // skeleton import
 
 interface SocialMedia {
   platform: string;
@@ -216,11 +217,26 @@ function CreatorsListpage() {
 
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6">
-                    Loading...
-                  </TableCell>
-                </TableRow>
+                // Skeleton rows styled like RequestAgentsList (same sizes/classes)
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i} className="border-b border-[#B6B6B633]">
+                    <TableCell>
+                      <Skeleton className="h-6 w-32" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-40" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-28" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-40 ml-auto" />
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : creatorsData.length === 0 ? (
                 <TableRow>
                   <TableCell

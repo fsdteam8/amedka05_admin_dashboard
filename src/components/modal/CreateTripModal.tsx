@@ -12,13 +12,17 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, X, Image as ImageIcon } from "lucide-react";
+import { Plus, Image as ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import Image from "next/image";
+import { useSession } from "next-auth/react";
 
-// Form validation schema
+// ✅ Validation Schema
 const formSchema = z.object({
   countryName: z.string().min(1, "Country name is required"),
   location: z.string().min(1, "Location is required"),
@@ -36,6 +40,9 @@ type FormData = z.infer<typeof formSchema>;
 export function CreateTripModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const token = (session?.user as { accessToken: string })?.accessToken;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -49,6 +56,54 @@ export function CreateTripModal() {
     },
   });
 
+ // ✅ শুধু এই অংশ change হবে
+
+const addTripMutation = useMutation({
+  mutationFn: async (values: FormData) => {
+    const formData = new FormData();
+
+    // ✅ data object তৈরি করে JSON এ রাখব
+    const dataPayload = {
+      country: values.countryName,
+      location: values.location,
+      startDate: new Date(values.startDate).toISOString(),
+      endDate: new Date(values.endDate).toISOString(),
+      participants: Number(values.availableSeats),
+    };
+
+    formData.append("data", JSON.stringify(dataPayload));
+
+    if (values.image) {
+      formData.append("image", values.image);
+    }
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/trip/create`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      }
+    );
+
+    if (!res.ok) throw new Error("Failed to create trip");
+    return res.json();
+  },
+  onSuccess: (data) => {
+    toast.success(data.message || "Trip created successfully!");
+    queryClient.invalidateQueries({ queryKey: ["trips"] });
+    setIsOpen(false);
+    form.reset();
+    setSelectedImage(null);
+  },
+  onError: (err) => {
+    toast.error(err.message || "Failed to create trip");
+  },
+});
+
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -58,20 +113,7 @@ export function CreateTripModal() {
   };
 
   const onSubmit = (data: FormData) => {
-    console.log("Form submitted:", data);
-    console.log("Selected image:", selectedImage);
-
-    // Here you would typically send the data to your API
-    // For now, we'll just close the modal
-    setIsOpen(false);
-    form.reset();
-    setSelectedImage(null);
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
-    form.reset();
-    setSelectedImage(null);
+    addTripMutation.mutate(data);
   };
 
   return (
@@ -84,7 +126,6 @@ export function CreateTripModal() {
       </DialogTrigger>
 
       <DialogContent className="bg-[#131313] border-gray-600 text-white max-w-xl py-7 px-3 gap-0">
-        {/* Form Content */}
         <div className="px-6 pb-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -193,11 +234,11 @@ export function CreateTripModal() {
                 )}
               />
 
-              {/* Image Upload */}
+              {/* Image Upload with Preview */}
               <FormField
                 control={form.control}
                 name="image"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel className="text-white text-sm">Image:</FormLabel>
                     <FormControl>
@@ -211,15 +252,29 @@ export function CreateTripModal() {
                         />
                         <div className="border-2 border-dashed border-gray-500 rounded-lg p-12 text-center bg-[#3A3A3A] hover:border-[#7DD3DD] transition-colors">
                           <div className="flex flex-col items-center gap-3">
-                            <ImageIcon size={40} className="text-gray-400" />
                             {selectedImage ? (
-                              <p className="text-sm text-gray-300">
-                                Selected: {selectedImage.name}
-                              </p>
+                              <>
+                                <Image
+                                  width={400}
+                                  height={400}
+                                  src={URL.createObjectURL(selectedImage)}
+                                  alt="Preview"
+                                  className="w-32 h-32 object-cover rounded-lg border border-gray-600"
+                                />
+                                <p className="text-sm text-gray-300">
+                                  Selected: {selectedImage.name}
+                                </p>
+                              </>
                             ) : (
-                              <p className="text-sm text-gray-400">
-                                Click to upload image or drag and drop
-                              </p>
+                              <>
+                                <ImageIcon
+                                  size={40}
+                                  className="text-gray-400"
+                                />
+                                <p className="text-sm text-gray-400">
+                                  Click to upload image or drag and drop
+                                </p>
+                              </>
                             )}
                           </div>
                         </div>
@@ -235,9 +290,9 @@ export function CreateTripModal() {
                 <Button
                   type="submit"
                   className="w-full bg-[#7DD3DD] hover:bg-cyan-600 text-white font-medium py-2"
-                  disabled={form.formState.isSubmitting}
+                  disabled={addTripMutation.isPending}
                 >
-                  {form.formState.isSubmitting ? "Creating..." : "Done"}
+                  {addTripMutation.isPending ? "Creating..." : "Done"}
                 </Button>
               </div>
             </form>
