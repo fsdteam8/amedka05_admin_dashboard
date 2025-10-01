@@ -1,10 +1,11 @@
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { changePassword, getProfile, ProfileUpdatePayload, updateProfileInfo, uploadAvatar } from "@/lib/profileInfo"
 import { ProfileResponse } from "@/types/userDataType"
 import { forgetPassword, resetPassword, veryfyOtpApi } from "@/lib/auth"
 import { useRouter } from "next/navigation"
+import { PartnershipData, PartnershipResponse, SinglePartnershipResponse } from "@/types/partnershipDataType"
+import { createPartnership, deletePartnership, getPartnership, getSingelPartnership, updatePartnership } from "@/lib/partnerships"
 
 export function useAvatarMutation(
   token: string,
@@ -14,8 +15,8 @@ export function useAvatarMutation(
 
   return useMutation({
     mutationFn: (file: File) => uploadAvatar(file, token),
-    onSuccess: () => {
-      toast.success("Avatar updated successfully")
+    onSuccess: (data) => {
+      toast.success(data.message || "Avatar updated successfully")
       queryClient.invalidateQueries({ queryKey: ["avatar"] })
       setAvatar(null)
     },
@@ -130,3 +131,75 @@ export function usePasswordReset(onSuccessCallback?: () => void) {
   })
 }
 
+export function useGetPartnership(token: string | undefined, currentPage: number, itemsPerPage: number) {
+  return useQuery<PartnershipResponse>({
+    queryKey: ["partnership", currentPage, itemsPerPage],
+    queryFn: () => {
+      if (!token) throw new Error("Token is missing")
+      return getPartnership(token, currentPage, itemsPerPage)
+    },
+    enabled: !!token,
+  })
+}
+
+export function useCreatetPartnership(token: string, setIsOpen: React.Dispatch<React.SetStateAction<boolean>>, onSuccessCallback?: () => void) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: PartnershipData) => createPartnership(token, payload),
+    onSuccess: () => {
+      setIsOpen(false)
+      toast.success("Pertnership created successfully");
+      queryClient.invalidateQueries({ queryKey: ["partnership"] });
+      if (onSuccessCallback) onSuccessCallback();
+    },
+    onError: (error: unknown) => {
+      if (error instanceof Error) toast.error(error.message || "Update failed");
+      else toast.error("Update failed");
+    },
+  });
+}
+
+export function useSingelGetPartnership(token: string | undefined, id: string) {
+  return useQuery<SinglePartnershipResponse>({
+    queryKey: ["singelPartnership", id],
+    queryFn: () => {
+      if (!token) throw new Error("Token is missing")
+      return getSingelPartnership(token, id)
+    },
+    enabled: !!token,
+  })
+}
+
+export function useUpdatePartnership(token: string | undefined, id: string, setIsOpen: React.Dispatch<React.SetStateAction<boolean>>, onSuccessCallback?: () => void) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: PartnershipData) => updatePartnership(token as string, id, payload),
+    onSuccess: () => {
+      setIsOpen(false)
+      toast.success("Pertnership updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["singelPartnership"] });
+      if (onSuccessCallback) onSuccessCallback();
+    },
+    onError: (error: unknown) => {
+      if (error instanceof Error) toast.error(error.message || "Update failed");
+      else toast.error("Update failed");
+    },
+  });
+}
+
+export function useDeletePartnership(token: string | undefined, id: string, onSuccessCallback?: () => void) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => deletePartnership(token as string, id),
+    onSuccess: () => {
+      toast.success("Pertnership deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["singelPartnership"] });
+      if (onSuccessCallback) onSuccessCallback();
+    },
+    onError: (error: unknown) => {
+      if (error instanceof Error) toast.error(error.message || "Update failed");
+      else toast.error("Update failed");
+    },
+  });
+}

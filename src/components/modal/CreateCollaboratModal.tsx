@@ -2,7 +2,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -13,11 +13,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, X, Image as ImageIcon } from "lucide-react";
-import { useState } from "react";
+import { Image as ImageIcon, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import {
+  useCreatetPartnership,
+  useSingelGetPartnership,
+  useUpdatePartnership,
+} from "@/hooks/apiCalling";
+import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 // Form validation schema
 const formSchema = z.object({
@@ -28,10 +35,24 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export function CreateCollaboratModal() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-
+export function CreateCollaboratModal({
+  isOpen,
+  setIsOpen,
+  id,
+  add
+}: {
+  id: string;
+  isOpen: boolean;
+  add: boolean
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
+  // const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { data: session } = useSession();
+  const token = (session?.user as { accessToken: string })?.accessToken;
+  const createPartnership = useCreatetPartnership(token, setIsOpen);
+  const singelPartnership = useSingelGetPartnership(token, id);
+  const updatePartnership = useUpdatePartnership(token, id, setIsOpen);
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -41,40 +62,77 @@ export function CreateCollaboratModal() {
     },
   });
 
+  // useEffect(() => {
+  //   if (singelPartnership?.data?.data) {
+  //     const existing = singelPartnership.data.data;
+  //     form.reset({
+  //       title: existing.title,
+  //       description: existing.description,
+  //       image: existing.image,
+  //     });
+  //     // set preview to existing image if present
+  //     if (existing.image) {
+  //       setPreviewUrl(existing.image);
+  //     }
+  //   }
+  // }, [singelPartnership.data, form]);
+
+  useEffect(() => {
+  if (!isOpen) {
+    // reset when modal closes
+    form.reset({
+      title: "",
+      description: "",
+      image: undefined,
+    });
+    setPreviewUrl(null);
+    return;
+  }
+
+  // when modal opens
+  if (!add && id && singelPartnership?.data?.data) {
+    // Edit mode
+    const existing = singelPartnership.data.data;
+    form.reset({
+      title: existing.title,
+      description: existing.description,
+      image: undefined, // file uploads should always reset
+    });
+    setPreviewUrl(existing.image || null);
+  }
+
+  if (add) {
+    // Add mode
+    form.reset({
+      title: "",
+      description: "",
+      image: undefined,
+    });
+    setPreviewUrl(null);
+  }
+}, [isOpen, add, id, singelPartnership?.data, form]);
+
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setSelectedImage(file);
+      // setSelectedImage(file);
+      setPreviewUrl(URL.createObjectURL(file)); // show preview immediately
       form.setValue("image", file);
     }
   };
 
   const onSubmit = (data: FormData) => {
-    console.log("Form submitted:", data);
-    console.log("Selected image:", selectedImage);
-
-    // Here you would typically send the data to your API
-    // For now, we'll just close the modal
-    setIsOpen(false);
-    form.reset();
-    setSelectedImage(null);
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
-    form.reset();
-    setSelectedImage(null);
+    if (id) {
+      updatePartnership.mutate(data);
+      console.log("Update partnership", data);
+    } else {
+      createPartnership.mutate(data);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Create Collaboration
-        </Button>
-      </DialogTrigger>
-
       <DialogContent className="bg-[#1a1a1a] border-[#404040] text-white max-w-lg p-0 gap-0 rounded-lg">
         {/* Form Content */}
         <div className="px-6 pb-6 mt-10">
@@ -126,7 +184,7 @@ export function CreateCollaboratModal() {
               <FormField
                 control={form.control}
                 name="image"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel className="text-white text-sm font-normal">
                       Image:
@@ -140,19 +198,26 @@ export function CreateCollaboratModal() {
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                           id="image-upload"
                         />
-                        <div className="border-2 border-dashed border-gray-600 rounded-lg py-20 px-8 text-center bg-transparent hover:border-[#7DD3DD] transition-colors">
+                        <div className="border-2 border-dashed border-gray-600 rounded-lg py-6 px-4 text-center bg-transparent hover:border-[#7DD3DD] transition-colors">
                           <div className="flex flex-col items-center gap-4">
-                            <div className="p-3 rounded-lg">
-                              <ImageIcon size={28} className="text-gray-500" />
-                            </div>
-                            {selectedImage ? (
-                              <p className="text-sm text-gray-300">
-                                Selected: {selectedImage.name}
-                              </p>
+                            {previewUrl ? (
+                              <Image
+                                src={previewUrl}
+                                alt="Preview"
+                                width={200}
+                                height={200}
+                                className="rounded-md object-cover max-h-48"
+                              />
                             ) : (
-                              <p className="text-sm text-gray-500">
-                                Click to upload image or drag and drop
-                              </p>
+                              <>
+                                <ImageIcon
+                                  size={28}
+                                  className="text-gray-500"
+                                />
+                                <p className="text-sm text-gray-500">
+                                  Click to upload image or drag and drop
+                                </p>
+                              </>
                             )}
                           </div>
                         </div>
@@ -168,9 +233,12 @@ export function CreateCollaboratModal() {
                 <Button
                   type="submit"
                   className="w-full bg-[#7DD3DD] hover:bg-[#6bc2cc] text-black font-medium py-3 h-auto rounded-md"
-                  disabled={form.formState.isSubmitting}
+                  disabled={createPartnership.isPending || updatePartnership.isPending}
                 >
-                  {form.formState.isSubmitting ? "Creating..." : "Done"}
+                  Done{" "}
+                  {createPartnership.isPending || updatePartnership.isPending && (
+                    <Loader2 className="animate-spin ml-2" />
+                  )}
                 </Button>
               </div>
             </form>
