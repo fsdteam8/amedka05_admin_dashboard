@@ -11,7 +11,7 @@ const page = () => {
           <p className='font-bold text-[24px] mb-3'>Settings</p>
         <p className='text-[#E7E7E7] text-[16px] font-medium'>Customize your dashboard experience and preferences.</p>
         </div>
-        <Link href='/setting' className='flex text-[#929292] items-center gap-1  cursor-pointer'>
+        <Link href='/dashboard/setting' className='flex text-[#929292] items-center gap-1  cursor-pointer'>
           <ArrowLeft /> Back
         </Link>
       </div>

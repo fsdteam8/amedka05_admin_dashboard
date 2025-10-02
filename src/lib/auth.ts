@@ -147,4 +147,3 @@ export async function resetPassword(payload: { email: string; newPassword: strin
   if (!response.ok) throw new Error(resData.message || "Failed to update password");
   return resData;
 }
-

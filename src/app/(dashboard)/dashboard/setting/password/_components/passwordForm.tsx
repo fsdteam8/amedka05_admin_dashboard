@@ -109,7 +109,7 @@ export default function PasswordForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="bg-[linear-gradient(135deg,#7DD3DD_0%,#89CFF0_50%,#A7C8F7_100%)] text-[#131313]" >Save Changes {changePasswordMutation.isPending && <Loader2 className="animate-spin ml-2" />}</Button>
+          <Button type="submit" className=" flex   bg-[linear-gradient(135deg,#7DD3DD_0%,#89CFF0_50%,#A7C8F7_100%)] text-[#131313]" >Save Changes {changePasswordMutation.isPending && <Loader2 className="animate-spin ml-2" />}</Button>
         </form>
       </Form>
     </div>
