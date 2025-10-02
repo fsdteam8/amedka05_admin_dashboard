@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, X } from "lucide-react";
+import { CircleCheckBig } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,8 +12,13 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/DashboardHeader/pageHeader";
-import { AgentModal } from "@/components/modal/AgentModal";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { useSession } from "next-auth/react";
+import { DeleteDialog } from "@/components/modal/DeleteModal";
+import { RequestAgentModal } from "@/components/modal/RequestAgentModal";
+import { UpdateAgentModal } from "@/components/modal/UpdateAgentModal";
 
 interface Agent {
   _id: string;
@@ -23,13 +29,17 @@ interface Agent {
   designation: string;
   brandName: string;
   workingFrom: string;
-  status: string;
+  status: "pending" | "accepted" | "rejected";
   image: string;
 }
 
 function AgentsList() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const { data: session } = useSession();
+  const token = (session?.user as { accessToken: string })?.accessToken;
+
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["agentData", currentPage],
@@ -38,7 +48,11 @@ function AgentsList() {
       url.searchParams.set("page", currentPage.toString());
       url.searchParams.set("limit", itemsPerPage.toString());
 
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!res.ok) throw new Error("Failed to fetch agent data");
       return res.json();
     },
@@ -49,6 +63,80 @@ function AgentsList() {
   const totalPages = Math.ceil(meta.total / meta.limit);
   const startItem = (currentPage - 1) * meta.limit + 1;
   const endItem = Math.min(currentPage * meta.limit, meta.total);
+
+  // ✅ Delete Dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+
+  // ✅ Mutation: update agent status
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: "accepted" | "rejected";
+    }) => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/agent/status/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to update status");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["agentData"] });
+      toast.success(data.message || "Status updated successfully");
+    },
+    onError: (err) => {
+      toast.error((err as Error).message || "Failed to update status");
+    },
+  });
+
+  const handleStatusUpdate = (id: string, status: "accepted" | "rejected") => {
+    updateStatusMutation.mutate({ id, status });
+  };
+
+  // ✅ Mutation: delete agent
+  const deleteAgentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/agent/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to delete agent");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["agentData"] });
+      toast.success(data.message || "Agent deleted successfully");
+      setDeleteDialogOpen(false);
+    },
+    onError: (err) => {
+      toast.error((err as Error).message || "Failed to delete agent");
+    },
+  });
+
+  const handleDeleteClick = (id: string) => {
+    setSelectedAgentId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedAgentId) deleteAgentMutation.mutate(selectedAgentId);
+  };
 
   const renderPaginationButtons = () => {
     const buttons = [];
@@ -139,11 +227,25 @@ function AgentsList() {
 
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6">
-                    Loading...
-                  </TableCell>
-                </TableRow>
+                Array.from({ length: 5 }).map((_, idx) => (
+                  <TableRow key={idx} className="border-b border-[#B6B6B633]">
+                    <TableCell>
+                      <Skeleton className="h-6 w-32" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-40" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-28" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-28" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-40 ml-auto" />
+                    </TableCell>
+                  </TableRow>
+                ))
               ) : agents.length === 0 ? (
                 <TableRow>
                   <TableCell
@@ -168,30 +270,64 @@ function AgentsList() {
                     <TableCell className="text-gray-200 px-4 py-4">
                       {agent.phoneNumber}
                     </TableCell>
-                    <TableCell className="px-4 py-4">
-                      <a
-                        href="#"
-                        className="text-blue-400 hover:text-blue-300 underline transition-colors"
-                      >
-                        {agent.country}
-                      </a>
-                    </TableCell>
+                    <TableCell className="px-4 py-4">{agent.country}</TableCell>
                     <TableCell className="px-4 py-4">
                       <div className="flex items-center gap-2 justify-end">
-                        <AgentModal agentId={agent?._id} />
+                        {/* <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClick(agent._id)}
+                          className="p-1 h-auto hover:text-white hover:bg-gray-600 transition-colors"
+                        >
+                          <Edit size={16} />
+                        </Button> */}
+                        <UpdateAgentModal agentId={agent._id}/>
+                        
+                        {/* <AgentModal agentId={agent._id} /> */}
+                        <RequestAgentModal agentId={agent._id} />
+
+                        {/* ✅ Delete button */}
+                        
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => handleDeleteClick(agent._id)}
                           className="p-1 h-auto text-red-700 hover:text-white hover:bg-gray-600 transition-colors"
                         >
                           <Trash2 size={16} />
                         </Button>
-                        <Button
-                          size="sm"
-                          className="px-3 py-1 bg-cyan-500 text-white hover:bg-cyan-600 transition-colors"
-                        >
-                          Accept
-                        </Button>
+
+                        {/* ✅ Status buttons */}
+                        {agent.status === "pending" && (
+                          <>
+                            <Button
+                              size="sm"
+                              disabled={updateStatusMutation.isPending}
+                              className="px-3 py-1 bg-cyan-500 text-white hover:bg-cyan-600 transition-colors"
+                              onClick={() =>
+                                handleStatusUpdate(agent._id, "accepted")
+                              }
+                            >
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={updateStatusMutation.isPending}
+                              className="px-3 py-1 bg-red-600 text-white hover:bg-red-700 transition-colors"
+                              onClick={() =>
+                                handleStatusUpdate(agent._id, "rejected")
+                              }
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                        {agent.status === "accepted" && (
+                          <CircleCheckBig className="text-cyan-500 w-6 h-6" />
+                        )}
+                        {agent.status === "rejected" && (
+                          <X className="text-red-500 w-6 h-6" />
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -201,7 +337,7 @@ function AgentsList() {
           </Table>
         </div>
 
-        {/* Pagination */}
+        {/* ✅ Pagination */}
         {meta.total > itemsPerPage && (
           <div className="flex items-center justify-between p-6 border-t border-gray-700">
             <div className="text-sm text-gray-400">
@@ -213,6 +349,14 @@ function AgentsList() {
           </div>
         )}
       </div>
+
+      {/* ✅ Delete Dialog */}
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        loading={deleteAgentMutation.isPending}
+      />
     </div>
   );
 }
