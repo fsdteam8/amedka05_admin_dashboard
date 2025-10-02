@@ -22,18 +22,41 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 
-// ✅ Validation Schema
-const formSchema = z.object({
-  countryName: z.string().min(1, "Country name is required"),
-  location: z.string().min(1, "Location is required"),
-  startDate: z.string().min(1, "Start date is required"),
-  endDate: z.string().min(1, "End date is required"),
-  availableSeats: z
-    .string()
-    .min(1, "Available seats is required")
-    .regex(/^\d+$/, "Must be a number"),
-  image: z.any().optional(),
-});
+// ✅ Validation Schema with refinements
+const formSchema = z
+  .object({
+    countryName: z.string().min(1, "Country name is required"),
+    location: z.string().min(1, "Location is required"),
+    startDate: z.string().min(1, "Start date is required"),
+    endDate: z.string().min(1, "End date is required"),
+    availableSeats: z
+      .string()
+      .min(1, "Available seats is required")
+      .regex(/^\d+$/, "Must be a number"),
+    image: z.any().optional(),
+  })
+  .refine(
+    (data) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // normalize
+      const start = new Date(data.startDate);
+      return start >= today;
+    },
+    {
+      message: "Start date cannot be in the past",
+      path: ["startDate"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.startDate || !data.endDate) return true;
+      return new Date(data.endDate) >= new Date(data.startDate);
+    },
+    {
+      message: "End date must be after start date",
+      path: ["endDate"],
+    }
+  );
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -56,53 +79,52 @@ export function CreateTripModal() {
     },
   });
 
- // ✅ শুধু এই অংশ change হবে
+  const addTripMutation = useMutation({
+    mutationFn: async (values: FormData) => {
+      const formData = new FormData();
 
-const addTripMutation = useMutation({
-  mutationFn: async (values: FormData) => {
-    const formData = new FormData();
+      const dataPayload = {
+        country: values.countryName,
+        location: values.location,
+        startDate: new Date(values.startDate).toISOString(),
+        endDate: new Date(values.endDate).toISOString(),
+        participants: Number(values.availableSeats),
+      };
 
-    // ✅ data object তৈরি করে JSON এ রাখব
-    const dataPayload = {
-      country: values.countryName,
-      location: values.location,
-      startDate: new Date(values.startDate).toISOString(),
-      endDate: new Date(values.endDate).toISOString(),
-      participants: Number(values.availableSeats),
-    };
+      formData.append("data", JSON.stringify(dataPayload));
 
-    formData.append("data", JSON.stringify(dataPayload));
-
-    if (values.image) {
-      formData.append("image", values.image);
-    }
-
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/trip/create`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
+      if (values.image) {
+        formData.append("image", values.image);
       }
-    );
 
-    if (!res.ok) throw new Error("Failed to create trip");
-    return res.json();
-  },
-  onSuccess: (data) => {
-    toast.success(data.message || "Trip created successfully!");
-    queryClient.invalidateQueries({ queryKey: ["trips"] });
-    setIsOpen(false);
-    form.reset();
-    setSelectedImage(null);
-  },
-  onError: (err) => {
-    toast.error(err.message || "Failed to create trip");
-  },
-});
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/trip/create`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
 
+      if (!res.ok) throw new Error("Failed to create trip");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || "Trip created successfully!");
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+      setIsOpen(false);
+      form.reset();
+      if (selectedImage) {
+        URL.revokeObjectURL(URL.createObjectURL(selectedImage)); // cleanup
+      }
+      setSelectedImage(null);
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to create trip");
+    },
+  });
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -156,9 +178,7 @@ const addTripMutation = useMutation({
                 name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-white text-sm">
-                      Location:
-                    </FormLabel>
+                    <FormLabel className="text-white text-sm">Location:</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Write Here..."
@@ -185,7 +205,8 @@ const addTripMutation = useMutation({
                         <Input
                           type="date"
                           {...field}
-                          className="bg-[#3A3A3A] border-[#4A4A4A] text-white placeholder:text-gray-400 focus:border-[#7DD3DD] focus:ring-[#7DD3DD] [&::-webkit-calendar-picker-indicator]:invert"
+                          min={new Date().toISOString().split("T")[0]} // block past days
+                          className="bg-[#3A3A3A] border-[#4A4A4A] text-white focus:border-[#7DD3DD] focus:ring-[#7DD3DD] [&::-webkit-calendar-picker-indicator]:invert"
                         />
                       </FormControl>
                       <FormMessage className="text-red-400 text-xs" />
@@ -204,7 +225,7 @@ const addTripMutation = useMutation({
                         <Input
                           type="date"
                           {...field}
-                          className="bg-[#3A3A3A] border-[#4A4A4A] text-white placeholder:text-gray-400 focus:border-[#7DD3DD] focus:ring-[#7DD3DD] [&::-webkit-calendar-picker-indicator]:invert"
+                          className="bg-[#3A3A3A] border-[#4A4A4A] text-white focus:border-[#7DD3DD] focus:ring-[#7DD3DD] [&::-webkit-calendar-picker-indicator]:invert"
                         />
                       </FormControl>
                       <FormMessage className="text-red-400 text-xs" />
@@ -219,9 +240,7 @@ const addTripMutation = useMutation({
                 name="availableSeats"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-white text-sm">
-                      Available Seats:
-                    </FormLabel>
+                    <FormLabel className="text-white text-sm">Available Seats:</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Write Here..."
@@ -267,10 +286,7 @@ const addTripMutation = useMutation({
                               </>
                             ) : (
                               <>
-                                <ImageIcon
-                                  size={40}
-                                  className="text-gray-400"
-                                />
+                                <ImageIcon size={40} className="text-gray-400" />
                                 <p className="text-sm text-gray-400">
                                   Click to upload image or drag and drop
                                 </p>

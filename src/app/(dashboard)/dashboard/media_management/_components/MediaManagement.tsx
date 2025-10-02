@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, Eye, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,98 +11,40 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/DashboardHeader/pageHeader";
-import Image from "next/image";
 import { UploadModal } from "@/components/modal/UploadModal";
+import { useQuery } from "@tanstack/react-query";
+import ReactPlayer from "react-player";
+import { EditTripModal } from "@/components/modal/EditTripModal";
 
-const creatorsData = [
-  {
-    id: 1,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 2,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 3,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 4,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 5,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 6,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 7,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 8,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 9,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 10,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-];
+type MediaItem = {
+  _id: string;
+  video?: string;
+  url?: string;
+  createdAt: string;
+};
 
 function MediaManagement() {
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 12;
   const itemsPerPage = 10;
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, creatorsData.length);
+
+  // ✅ Fetch media data
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["media", currentPage],
+    queryFn: async () => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/event?page=${currentPage}&limit=${itemsPerPage}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch media");
+      return res.json();
+    },
+  });
+
+  const mediaData: MediaItem[] = data?.data?.data || [];
+  const meta = data?.data?.meta || { page: 1, limit: itemsPerPage, total: 0 };
+
+  const totalPages = Math.ceil(meta.total / meta.limit);
+  const startItem = (meta.page - 1) * meta.limit + 1;
+  const endItem = Math.min(meta.page * meta.limit, meta.total);
 
   const renderPaginationButtons = () => {
     const buttons = [];
@@ -160,31 +102,30 @@ function MediaManagement() {
     return buttons;
   };
 
+  if (isLoading) return <div className="p-6 text-white">Loading media...</div>;
+  if (isError)
+    return <div className="p-6 text-red-500">Failed to load media.</div>;
+
   return (
     <div className="text-white min-h-screen p-6">
       <div className="flex justify-between mb-10">
         <div>
           <PageHeader
-            title="Media Management "
+            title="Media Management"
             breadcrumb="Plan, track, and manage every event with ease."
             btnText="Add Category"
             icon={Plus}
           />
         </div>
-
-        <div className="">
-          {/* <Button className="flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  Create New Trip
-                </Button> */}
+        <div>
           <UploadModal />
         </div>
       </div>
+
       <div className="bg-[#2A2A2A] rounded-lg border border-gray-700">
         {/* Table Container */}
         <div className="overflow-x-auto">
           <Table className="w-full">
-            {/* Table Header */}
             <TableHeader>
               <TableRow className="border-b border-gray-600 hover:bg-transparent">
                 <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4">
@@ -196,58 +137,56 @@ function MediaManagement() {
                 <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4 text-center">
                   Date
                 </TableHead>
-                {/* <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4">
-                  Link
-                </TableHead> */}
                 <TableHead className="text-gray-300 text-end font-medium bg-gray-700 h-12 px-4">
                   <span className="mr-16">Action</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
 
-            {/* Table Body */}
             <TableBody>
-              {creatorsData.map((creator) => (
+              {mediaData.map((item, index) => (
                 <TableRow
-                  key={creator.id}
+                  key={item._id}
                   className="border-b border-[#B6B6B633] hover:bg-gray-750"
                 >
                   <TableCell className="text-gray-200 px-4 py-4">
-                    <div className="">
-                      <Image
-                        src={creator.image}
-                        alt="iagme"
-                        width={200}
-                        height={200}
-                        className="w-[120px] h-[70px]"
+                    {item.video ? (
+                      <ReactPlayer
+                        src={item.video}
+                        width="120px"
+                        height="70px"
+                        controls
                       />
-                    </div>
+                    ) : item.url ? (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 underline hover:text-blue-300"
+                      >
+                        {item.url}
+                      </a>
+                    ) : (
+                      "No media"
+                    )}
                   </TableCell>
+
                   <TableCell className="text-gray-200 px-4 py-4">
-                    {creator.serial}
+                    {startItem + index}
                   </TableCell>
                   <TableCell className="text-gray-200 px-4 py-4 text-center">
-                    {creator.date}
+                    {new Date(item.createdAt).toLocaleDateString()}
                   </TableCell>
-                  {/* <TableCell className="px-4 py-4">
-                    <a
-                      href={creator.link}
-                      className="text-blue-400 hover:text-blue-300 underline transition-colors"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {creator.link}
-                    </a>
-                  </TableCell> */}
                   <TableCell className="px-4 py-4">
                     <div className="flex items-center justify-end gap-2 mr-7">
-                      <Button
+                      {/* <Button
                         variant="ghost"
                         size="sm"
                         className="p-1 h-auto text-gray-400 hover:text-white hover:bg-gray-600 transition-colors"
                       >
-                        <Eye size={16} />
-                      </Button>
+                        <Edit size={16} />
+                      </Button> */}
+                      <EditTripModal eventId = {item?._id}/>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -255,12 +194,12 @@ function MediaManagement() {
                       >
                         <Trash2 size={16} />
                       </Button>
-                      <Button
+                      {/* <Button
                         size="sm"
                         className="px-3 py-1 bg-cyan-500 text-white hover:bg-cyan-600 transition-colors"
                       >
                         Accept
-                      </Button>
+                      </Button> */}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -272,9 +211,8 @@ function MediaManagement() {
         {/* Pagination */}
         <div className="flex items-center justify-between p-6 border-t border-gray-700">
           <div className="text-sm text-gray-400">
-            Showing {startItem} to {endItem} of {totalPages} results
+            Showing {startItem} to {endItem} of {meta.total} results
           </div>
-
           <div className="flex items-center gap-1">
             {renderPaginationButtons()}
           </div>
