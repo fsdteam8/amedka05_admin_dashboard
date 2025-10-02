@@ -1,12 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Edit,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Edit, Plus, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,102 +13,35 @@ import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/DashboardHeader/pageHeader";
 import Image from "next/image";
 import { CreateCollaboratModal } from "@/components/modal/CreateCollaboratModal";
+import { useDeletePartnership, useGetPartnership } from "@/hooks/apiCalling";
+import { useSession } from "next-auth/react";
+import { TableSkeleton } from "@/components/Skeleton";
+import { DeleteDialog } from "@/components/modal/DeleteModal";
 
-const creatorsData = [
-  {
-    id: 1,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 2,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 3,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 4,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 5,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 6,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 7,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 8,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 9,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-  {
-    id: 10,
-    name: "John Smith",
-    serial: "1",
-    date: "25/05/2025",
-    link: "http://www.xonwork.com",
-    image: "/images/media.png",
-  },
-];
 
-function MediaManagement() {
+function Partnerships() {
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 12;
   const itemsPerPage = 10;
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, creatorsData.length);
+  const [isOpen, setIsOpen] = useState(false);
+  const [id, setId] = useState("");
+  const { data: session } = useSession();
+  const token = (session?.user as { accessToken: string })?.accessToken;
+  const getPartnership = useGetPartnership(token, currentPage, itemsPerPage);
+  const [add, setAdd] = useState(false);
+  const partnerships = getPartnership.data?.data.data || [];
+  const meta = getPartnership.data?.data?.meta;
+  const totalPages = meta?.total ? Math.ceil(meta.total / meta.limit) : 1;
 
+  const startItem = (currentPage - 1) * (meta?.limit || 10) + 1;
+  const endItem = Math.min(currentPage * (meta?.limit || 10), meta?.total || 0);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false); // Delete modal open state
+  const [deleteId, setDeleteId] = useState("");
+  const deletePartnership = useDeletePartnership(token, deleteId);
+  // Pagination
   const renderPaginationButtons = () => {
     const buttons = [];
     const maxVisiblePages = 5;
 
-    // Previous button
     buttons.push(
       <Button
         key="prev"
@@ -128,7 +55,6 @@ function MediaManagement() {
       </Button>
     );
 
-    // Page numbers
     for (let i = 1; i <= Math.min(maxVisiblePages, totalPages); i++) {
       buttons.push(
         <Button
@@ -136,18 +62,16 @@ function MediaManagement() {
           variant={currentPage === i ? "default" : "outline"}
           size="sm"
           onClick={() => setCurrentPage(i)}
-          className={`w-10 h-10 p-0 ${
-            currentPage === i
-              ? "bg-[#7DD3DD] border-[#7DD3DD] text-white hover:bg-cyan-600"
-              : "bg-gray-700 border-[#7DD3DD] text-white hover:bg-gray-600"
-          }`}
+          className={`w-10 h-10 p-0 ${currentPage === i
+            ? "bg-[#7DD3DD] border-[#7DD3DD] text-white hover:bg-cyan-600"
+            : "bg-gray-700 border-[#7DD3DD] text-white hover:bg-gray-600"
+            }`}
         >
           {i}
         </Button>
       );
     }
 
-    // Next button
     buttons.push(
       <Button
         key="next"
@@ -166,6 +90,15 @@ function MediaManagement() {
     return buttons;
   };
 
+  const handleDelete = () => {
+    deletePartnership.mutate(undefined, {
+      onSuccess: () => {
+        setIsDeleteOpen(false);
+        getPartnership.refetch();
+      },
+    });
+  };
+
   return (
     <div className="text-white min-h-screen p-6">
       <div className="flex justify-between mb-10">
@@ -176,113 +109,140 @@ function MediaManagement() {
           icon={Plus}
         />
 
-        <div className="">
-          <CreateCollaboratModal />
+        <div>
+          <Button
+            onClick={() => {
+              setAdd(true);
+              setId("");
+              setIsOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Create Collaboration
+          </Button>
         </div>
       </div>
+
       <div className="bg-[#2A2A2A] rounded-lg border border-gray-700">
-        {/* Table Container */}
+        {/* Table */}
         <div className="overflow-x-auto">
           <Table className="w-full">
-            {/* Table Header */}
             <TableHeader>
               <TableRow className="border-b border-gray-600 hover:bg-transparent">
                 <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4">
-                  Video
+                  Image
                 </TableHead>
                 <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4">
                   Serial No
                 </TableHead>
-                <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4 text-center">
-                  Date
+                <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4">
+                  Title
                 </TableHead>
-                {/* <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4">
-                  Link
-                </TableHead> */}
+                <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4 text-center">
+                  Description
+                </TableHead>
                 <TableHead className="text-gray-300 text-end font-medium bg-gray-700 h-12 px-4">
                   <span className="mr-16">Action</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
 
-            {/* Table Body */}
             <TableBody>
-              {creatorsData.map((creator) => (
-                <TableRow
-                  key={creator.id}
-                  className="border-b border-[#B6B6B633] hover:bg-gray-750"
-                >
-                  <TableCell className="text-gray-200 px-4 py-4">
-                    <div className="">
-                      <Image
-                        src={creator.image}
-                        alt="iagme"
-                        width={200}
-                        height={200}
-                        className="w-[120px] h-[70px]"
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-gray-200 px-4 py-4">
-                    {creator.serial}
-                  </TableCell>
-                  <TableCell className="text-gray-200 px-4 py-4 text-center">
-                    {creator.date}
-                  </TableCell>
-                  {/* <TableCell className="px-4 py-4">
-                    <a
-                      href={creator.link}
-                      className="text-blue-400 hover:text-blue-300 underline transition-colors"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {creator.link}
-                    </a>
-                  </TableCell> */}
-                  <TableCell className="px-4 py-4">
-                    <div className="flex items-center justify-end gap-2 mr-7">
-                      {/* <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-1 h-auto text-gray-400 hover:text-white hover:bg-gray-600 transition-colors"
-                      >
-                        <Eye size={16} />
-                      </Button> */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-1 h-auto text-red-700 hover:text-white hover:bg-gray-600 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-1 h-auto hover:text-white hover:bg-gray-600 transition-colors"
-                      >
-                        <Edit size={16} />
-                      </Button>
-                    </div>
+              {getPartnership.isLoading ? (
+                <TableSkeleton rows={5} />
+              ) : partnerships.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="text-center py-6 text-gray-400"
+                  >
+                    No partnerships found.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                partnerships.map((p, i) => (
+                  <TableRow
+                    key={p._id}
+                    className="border-b border-[#B6B6B633] hover:bg-gray-750"
+                  >
+                    <TableCell className="px-4 py-4">
+                      <Image
+                        src={p.image}
+                        alt="partnership"
+                        width={120}
+                        height={70}
+                        className="w-[120px] h-[70px] rounded-md"
+                      />
+                    </TableCell>
+                    <TableCell className="text-gray-200 px-4 py-4">
+                      {startItem + i}
+                    </TableCell>
+                    <TableCell className="text-gray-200 px-4 py-4 text-center">
+                      {p?.title}
+                    </TableCell>
+                    <TableCell className="text-gray-200 px-4 py-4 text-center">
+                      {p?.description.slice(0, 20) + "..."}
+                    </TableCell>
+                    <TableCell className="px-4 py-4">
+                      <div className="flex items-center justify-end gap-2 mr-7">
+                        <Button
+                          onClick={() => {
+                            setIsDeleteOpen(true);
+                            setDeleteId(p._id);
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="p-1 h-auto text-red-700 hover:text-white hover:bg-gray-600 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setAdd(false);
+                            setId(p._id);
+                            setIsOpen(true);
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="p-1 h-auto hover:text-white hover:bg-gray-600 transition-colors"
+                        >
+                          <Edit size={16} />
+                        </Button>
+
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-700">
-          <div className="text-sm text-gray-400">
-            Showing {startItem} to {endItem} of {totalPages} results
+        {meta && meta?.total > (meta?.limit || 10) && (
+          <div className="flex items-center justify-between p-6 border-t border-gray-700">
+            <div className="text-sm text-gray-400">
+              Showing {startItem} to {endItem} of {meta?.total} results
+            </div>
+            <div className="flex items-center gap-1">{renderPaginationButtons()}</div>
           </div>
-
-          <div className="flex items-center gap-1">
-            {renderPaginationButtons()}
-          </div>
-        </div>
+        )}
       </div>
+      <CreateCollaboratModal
+        isOpen={isOpen}
+        setIsOpen={setIsOpen}
+        id={id}
+        add={add}
+      />
+      <DeleteDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        onConfirm={handleDelete}
+        loading={deletePartnership.isPending}
+      />
     </div>
   );
 }
 
-export default MediaManagement;
+export default Partnerships;
