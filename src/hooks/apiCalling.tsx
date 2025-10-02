@@ -6,6 +6,8 @@ import { forgetPassword, resetPassword, veryfyOtpApi } from "@/lib/auth"
 import { useRouter } from "next/navigation"
 import { PartnershipData, PartnershipResponse, SinglePartnershipResponse } from "@/types/partnershipDataType"
 import { createPartnership, deletePartnership, getPartnership, getSingelPartnership, updatePartnership } from "@/lib/partnerships"
+import { ContactResponse } from "@/types/contactDataType"
+import { getContact } from "@/lib/contact"
 
 export function useAvatarMutation(
   token: string,
@@ -202,4 +204,15 @@ export function useDeletePartnership(token: string | undefined, id: string, onSu
       else toast.error("Update failed");
     },
   });
+}
+
+export function useGetContact(token: string | undefined, currentPage: number, itemsPerPage: number) {
+  return useQuery<ContactResponse>({
+    queryKey: ["contact", currentPage, itemsPerPage],
+    queryFn: () => {
+      if (!token) throw new Error("Token is missing")
+      return getContact(token, currentPage, itemsPerPage)
+    },
+    enabled: !!token,
+  })
 }

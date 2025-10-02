@@ -61,7 +61,7 @@ interface Creator {
 
 type StatusFilter = "all" | "accepted" | "rejected";
 
-function CreatorsManagementList() {
+function CreatorsManagementList() {      
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
