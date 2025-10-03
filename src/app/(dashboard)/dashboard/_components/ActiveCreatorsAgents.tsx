@@ -1,39 +1,127 @@
 "use client";
-import React, { useState } from "react";
-import { CartesianGrid, Line, LineChart, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
+import React, { useMemo } from "react";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+} from "recharts";
 
 export const description = "Active Creators & Agents Chart";
 
-const chartData = [
-  { date: "3 Oct", creators: 2000, agents: 0 },
-  { date: "10 Oct", creators: 3200, agents: 1800 },
-  { date: "14 Oct", creators: 2800, agents: 1600 },
-  { date: "20 Oct", creators: 4200, agents: 2800 },
-  { date: "23 Oct", creators: 3800, agents: 3200 },
-  { date: "27 Oct", creators: 3400, agents: 1000 },
-  { date: "30 Oct", creators: 5000, agents: 3000 },
-];
+// 🔹 Types
+type ApiItem = {
+  _id: number;
+  label: string;
+  count: number;
+};
+
+type ApiResponse = {
+  statusCode: number;
+  success: boolean;
+  message: string;
+  data: {
+    creators: ApiItem[];
+    agents: ApiItem[];
+  };
+};
+
+type ChartDataItem = {
+  date: string;
+  creators: number;
+  agents: number;
+};
 
 const chartConfig = {
   creators: {
     label: "Creators",
-    color: "#6366F1", // Purple/Blue color matching your image
+    color: "#6366F1", // Purple/Blue
   },
   agents: {
-    label: "Agents", 
-    color: "#9CA3AF", // Gray color matching your image
+    label: "Agents",
+    color: "#9CA3AF", // Gray
   },
 };
 
+// 🔹 Skeleton Component
+function ChartSkeleton() {
+  return (
+    <div className="bg-[#2A2A2A] rounded-lg text-white w-full py-6">
+      <div className="flex items-center justify-between mb-6 px-6">
+        <div className="animate-pulse space-y-3">
+          <div className="h-5 w-48 bg-gray-700 rounded"></div>
+          <div className="flex gap-4">
+            <div className="h-3 w-20 bg-gray-700 rounded"></div>
+            <div className="h-3 w-20 bg-gray-700 rounded"></div>
+          </div>
+        </div>
+        <div className="h-8 w-32 bg-gray-700 rounded animate-pulse"></div>
+      </div>
+      <div className="h-[400px] w-full px-6">
+        <div className="w-full h-full bg-gray-800 rounded-lg animate-pulse"></div>
+      </div>
+    </div>
+  );
+}
+
 export function ActiveCreatorsAgents() {
-  const [activeTab, setActiveTab] = useState("Month");
-  const tabs = ["Day", "Week", "Month", "Year"];
+  const { data: session } = useSession();
+  const token = (session?.user as { accessToken?: string } | undefined)
+    ?.accessToken;
+
+  const {
+    data,
+    isLoading,
+    isError,
+  } = useQuery<ApiResponse>({
+    queryKey: ["activeCreators", token],
+    queryFn: async () => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/dashboard/active-creator-agent`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to fetch active creators/agents");
+      return res.json();
+    },
+    enabled: !!token,
+  });
+
+  // 🔹 Transform API response into chart-friendly data
+  const chartData: ChartDataItem[] = useMemo(() => {
+    if (!data?.data) return [];
+    const { creators, agents } = data.data;
+
+    return creators.map((creator, i) => ({
+      date: creator.label,
+      creators: creator.count,
+      agents: agents[i]?.count ?? 0,
+    }));
+  }, [data]);
+
+  if (isLoading) return <ChartSkeleton />;
+
+  if (isError) {
+    return (
+      <div className="bg-[#2A2A2A] rounded-lg text-white w-full py-6 flex justify-center items-center h-[400px]">
+        <p className="text-red-500">Failed to load chart data.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#2A2A2A] rounded-lg text-white w-full py-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 px-6"> 
-        <div className="">
+      <div className="flex items-center justify-between mb-6 px-6">
+        <div>
           <p className="text-[20px] font-medium leading-[120%] text-white mb-3">
             Active Creators & Agents
           </p>
@@ -48,23 +136,6 @@ export function ActiveCreatorsAgents() {
             </div>
           </div>
         </div>
-        
-        {/* Tab buttons */}
-        <div className="flex bg-gray-700 rounded-lg p-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                activeTab === tab
-                  ? "bg-cyan-500 text-white font-medium"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Chart */}
@@ -74,9 +145,9 @@ export function ActiveCreatorsAgents() {
             data={chartData}
             margin={{ top: 20, right: 30, left: 0, bottom: 20 }}
           >
-            <CartesianGrid 
-              strokeDasharray="none" 
-              stroke="#4B5563" 
+            <CartesianGrid
+              strokeDasharray="none"
+              stroke="#4B5563"
               horizontal={true}
               vertical={false}
             />
@@ -84,32 +155,28 @@ export function ActiveCreatorsAgents() {
               dataKey="date"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#9CA3AF', fontSize: 12 }}
+              tick={{ fill: "#9CA3AF", fontSize: 12 }}
               dy={10}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#9CA3AF', fontSize: 12 }}
-              tickFormatter={(value) => `${value / 1000}k`}
-              domain={[0, 5000]}
-              ticks={[0, 1000, 2000, 3000, 4000, 5000]}
+              tick={{ fill: "#9CA3AF", fontSize: 12 }}
+              tickFormatter={(value) => `${value}`}
             />
             <Line
               type="monotone"
               dataKey="creators"
               stroke={chartConfig.creators.color}
               strokeWidth={2}
-              dot={{ 
-                fill: chartConfig.creators.color, 
-                strokeWidth: 0, 
-                r: 4,
-                stroke: chartConfig.creators.color
-              }}
-              activeDot={{ 
-                r: 6, 
+              dot={{
                 fill: chartConfig.creators.color,
-                stroke: chartConfig.creators.color
+                strokeWidth: 0,
+                r: 4,
+              }}
+              activeDot={{
+                r: 6,
+                fill: chartConfig.creators.color,
               }}
             />
             <Line
@@ -117,16 +184,14 @@ export function ActiveCreatorsAgents() {
               dataKey="agents"
               stroke={chartConfig.agents.color}
               strokeWidth={2}
-              dot={{ 
-                fill: chartConfig.agents.color, 
-                strokeWidth: 0, 
-                r: 4,
-                stroke: chartConfig.agents.color
-              }}
-              activeDot={{ 
-                r: 6, 
+              dot={{
                 fill: chartConfig.agents.color,
-                stroke: chartConfig.agents.color
+                strokeWidth: 0,
+                r: 4,
+              }}
+              activeDot={{
+                r: 6,
+                fill: chartConfig.agents.color,
               }}
             />
           </LineChart>

@@ -12,98 +12,93 @@ import {
   ExternalLink,
   Plus,
   Trash2,
-  Edit,
 } from "lucide-react";
 import PageHeader from "@/components/DashboardHeader/pageHeader";
 import { CreateTripModal } from "@/components/modal/CreateTripModal";
-// Mock data for trips
-const tripsData = [
-  {
-    id: 1,
-    title: "China, Beijing",
-    location: "Beihai Park, China, Beijing",
-    dateRange: "19 Nov 2025 - 22 Nov 2025",
-    participants: 4,
-    image: "/api/placeholder/300/200",
-  },
-  {
-    id: 2,
-    title: "China, Beijing",
-    location: "Beihai Park, China, Beijing",
-    dateRange: "19 Nov 2025 - 22 Nov 2025",
-    participants: 12,
-    image: "/api/placeholder/300/200",
-  },
-  {
-    id: 3,
-    title: "China, Beijing",
-    location: "Beihai Park, China, Beijing",
-    dateRange: "19 Nov 2025 - 22 Nov 2025",
-    participants: 8,
-    image: "/api/placeholder/300/200",
-  },
-  {
-    id: 4,
-    title: "China, Beijing",
-    location: "Beihai Park, China, Beijing",
-    dateRange: "19 Nov 2025 - 22 Nov 2025",
-    participants: 25,
-    image: "/api/placeholder/300/200",
-  },
-  {
-    id: 5,
-    title: "China, Beijing",
-    location: "Beihai Park, China, Beijing",
-    dateRange: "19 Nov 2025 - 22 Nov 2025",
-    participants: 12,
-    image: "/api/placeholder/300/200",
-  },
-  {
-    id: 6,
-    title: "China, Beijing",
-    location: "Beihai Park, China, Beijing",
-    dateRange: "19 Nov 2025 - 22 Nov 2025",
-    participants: 8,
-    image: "/api/placeholder/300/200",
-  },
-  {
-    id: 7,
-    title: "China, Beijing",
-    location: "Beihai Park, China, Beijing",
-    dateRange: "19 Nov 2025 - 22 Nov 2025",
-    participants: 15,
-    image: "/api/placeholder/300/200",
-  },
-  {
-    id: 8,
-    title: "China, Beijing",
-    location: "Beihai Park, China, Beijing",
-    dateRange: "19 Nov 2025 - 22 Nov 2025",
-    participants: 20,
-    image: "/api/placeholder/300/200",
-  },
-];
+import { UpdateTripModal } from "@/components/modal/UpdateTripModal";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { DeleteDialog } from "@/components/modal/DeleteModal";
+import { useSession } from "next-auth/react";
+
+// ✅ Trip type
+type Trip = {
+  _id: string;
+  country: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  participants: number;
+  image: string;
+};
 
 function TripsManagement() {
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
-  const totalPages = Math.ceil(tripsData.length / itemsPerPage);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [tripToDelete, setTripToDelete] = useState<string | null>(null);
+  const itemsPerPage = 8;
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const token = (session?.user as { accessToken: string })?.accessToken;
 
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, tripsData.length);
+  // ✅ API call
+  const { data, isLoading } = useQuery({
+    queryKey: ["trips", currentPage],
+    queryFn: async () => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/trip?page=${currentPage}&limit=${itemsPerPage}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to fetch trips");
+      return res.json();
+    },
+  });
 
-  // Get current page data
-  const getCurrentPageData = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return tripsData.slice(startIndex, endIndex);
+  const trips: Trip[] = data?.data?.data || [];
+  const meta = data?.data?.meta;
+  const totalPages = meta ? Math.ceil(meta.total / meta.limit) : 1;
+  const startItem = meta ? (meta.page - 1) * meta.limit + 1 : 0;
+  const endItem = meta ? Math.min(meta.page * meta.limit, meta.total) : 0;
+
+  // ✅ Delete mutation
+  const deleteTripMutation = useMutation({
+    mutationFn: async (tripId: string) => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/trip/${tripId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to delete trip");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || "Trip deleted successfully!");
+      queryClient.invalidateQueries({ queryKey: ["trips"] });
+      setDeleteOpen(false);
+      setTripToDelete(null);
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to delete trip");
+    },
+  });
+
+  const handleDeleteClick = (tripId: string) => {
+    setTripToDelete(tripId);
+    setDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (tripToDelete) deleteTripMutation.mutate(tripToDelete);
   };
 
   const renderPaginationButtons = () => {
     const buttons = [];
     const maxVisiblePages = 5;
 
-    // Previous button
     buttons.push(
       <Button
         key="prev"
@@ -117,7 +112,6 @@ function TripsManagement() {
       </Button>
     );
 
-    // Page numbers
     for (let i = 1; i <= Math.min(maxVisiblePages, totalPages); i++) {
       buttons.push(
         <Button
@@ -136,7 +130,6 @@ function TripsManagement() {
       );
     }
 
-    // Next button
     buttons.push(
       <Button
         key="next"
@@ -166,107 +159,119 @@ function TripsManagement() {
             icon={Plus}
           />
         </div>
-
         <div className="flex gap-4">
-          {/* <Button className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Create New Trip
-          </Button> */}
           <CreateTripModal />
         </div>
       </div>
+
       {/* Trip Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {getCurrentPageData().map((trip) => (
-          <Card
-            key={trip.id}
-            className="bg-[#2A2A2A] border-gray-700 overflow-hidden group hover:bg-gray-750 transition-colors"
-          >
-            <div className="relative">
-              {/* Trip Image */}
-              <div
-                className="h-48 bg-cover bg-center relative"
-                style={{
-                  backgroundImage:
-                    'linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url("/images/tripimage.jpg")',
-                }}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {isLoading
+          ? Array.from({ length: itemsPerPage }).map((_, i) => (
+              <Card
+                key={i}
+                className="bg-[#2A2A2A] border-gray-700 animate-pulse h-64"
               >
-                {/* Overlay with gradient */}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80"></div>
-
-                {/* Title overlay */}
-                <div className="absolute top-4 left-4">
-                  <h3 className="text-white text-lg font-semibold drop-shadow-lg">
-                    {trip.title}
-                  </h3>
-                </div>
-
-                {/* External link icon */}
-                <div className="absolute top-4 right-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="p-1 h-auto text-white hover:text-gray-300 hover:bg-white/20 transition-colors"
+                <div className="h-48 bg-gray-700"></div>
+                <CardContent className="p-4 space-y-3">
+                  <div className="h-4 bg-gray-600 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-600 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-600 rounded w-1/3"></div>
+                </CardContent>
+              </Card>
+            ))
+          : trips.map((trip) => (
+              <Card
+                key={trip._id}
+                className="bg-[#2A2A2A] border-gray-700 overflow-hidden group hover:bg-gray-750 transition-colors"
+              >
+                <div className="relative">
+                  <div
+                    className="h-48 bg-cover bg-center relative"
+                    style={{
+                      backgroundImage: `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url(${trip.image})`,
+                    }}
                   >
-                    <ExternalLink size={16} />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Card Content */}
-              <CardContent className="p-4 space-y-3">
-                {/* Location */}
-                <div className="flex items-center gap-2 text-gray-300">
-                  <MapPin size={16} className="text-gray-400 flex-shrink-0" />
-                  <span className="text-sm">{trip.location}</span>
-                </div>
-
-                {/* Date Range */}
-                <div className="flex items-center gap-2 text-gray-300">
-                  <Calendar size={16} className="text-gray-400 flex-shrink-0" />
-                  <span className="text-sm">{trip.dateRange}</span>
-                </div>
-
-                {/* Participants */}
-                <div className="flex items-center gap-2 text-gray-300">
-                  <Users size={16} className="text-gray-400 flex-shrink-0" />
-                  <span className="text-sm">
-                    {trip.participants} Participants
-                  </span>
-                  {/* Status indicators */}
-                  <div className="ml-auto flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-1 h-auto text-red-700 hover:text-white hover:bg-gray-600 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-1 h-auto text-gray-400 hover:text-white hover:bg-gray-600 transition-colors"
-                    >
-                      <Edit size={16} />
-                    </Button>
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80"></div>
+                    <div className="absolute top-4 left-4">
+                      <h3 className="text-white text-lg font-semibold drop-shadow-lg">
+                        {trip.country}
+                      </h3>
+                    </div>
+                    <div className="absolute top-4 right-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-1 h-auto text-white hover:text-gray-300 hover:bg-white/20 transition-colors"
+                      >
+                        <ExternalLink size={16} />
+                      </Button>
+                    </div>
                   </div>
+
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <MapPin
+                        size={16}
+                        className="text-gray-400 flex-shrink-0"
+                      />
+                      <span className="text-sm">{trip.location}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <Calendar
+                        size={16}
+                        className="text-gray-400 flex-shrink-0"
+                      />
+                      <span className="text-sm">
+                        {new Date(trip.startDate).toLocaleDateString()} -{" "}
+                        {new Date(trip.endDate).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <Users size={16} className="text-gray-400 flex-shrink-0" />
+                      <span className="text-sm">
+                        {trip.participants} Participants
+                      </span>
+
+                      <div className="ml-auto flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-1 h-auto text-red-700 hover:text-white hover:bg-gray-600 transition-colors"
+                          onClick={() => handleDeleteClick(trip._id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                        <UpdateTripModal trip={trip._id} />
+                      </div>
+                    </div>
+                  </CardContent>
                 </div>
-              </CardContent>
-            </div>
-          </Card>
-        ))}
+              </Card>
+            ))}
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between p-6"> 
+      <div className="flex items-center justify-between p-6">
         <div className="text-sm text-gray-400">
-          Showing {startItem} to {endItem} of {tripsData.length} results
+          Showing {startItem} to {endItem} of {meta?.total || 0} results
         </div>
-
-        <div className="flex items-center gap-1">
-          {renderPaginationButtons()}
-        </div>
+        <div className="flex items-center gap-1">{renderPaginationButtons()}</div>
       </div>
+
+      {/* ✅ Delete Dialog */}
+      <DeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={handleConfirmDelete}
+        title="Delete Trip"
+        description="Are you sure you want to delete this trip? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        loading={deleteTripMutation.isPending}
+      />
     </div>
   );
 }
