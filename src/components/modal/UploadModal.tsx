@@ -12,23 +12,35 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, X, Video, Download } from "lucide-react";
+import { X, Video, Download } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useSession } from "next-auth/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-// Form validation schema
-const formSchema = z.object({
-  videoUrl: z.string().min(1, "Video URL is required"),
-  video: z.any().optional(),
-});
+// ✅ Validation: either video file OR URL, not both
+const formSchema = z
+  .object({
+    videoUrl: z.string().optional(),
+    video: z.any().optional(),
+  })
+  .refine(
+    (data) => (data.video && !data.videoUrl) || (!data.video && data.videoUrl),
+    {
+      message: "Provide either a video file or a URL, not both",
+      path: ["videoUrl"],
+    }
+  );
 
 type FormData = z.infer<typeof formSchema>;
 
 export function UploadModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+  const { data: session } = useSession();
+  const token = (session?.user as { accessToken: string })?.accessToken;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -38,23 +50,50 @@ export function UploadModal() {
     },
   });
 
+  const queryClient = useQueryClient();
+
+  // ✅ TanStack Query Mutation
+  const uploadMutation = useMutation({
+    mutationFn: async (data: FormData) => {
+      const formData = new FormData();
+      if (data.video) formData.append("video", data.video);
+      if (data.videoUrl) formData.append("videoUrl", data.videoUrl);
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/event/create`, {
+        method: "POST",
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      // Invalidate media query to refetch updated data
+      queryClient.invalidateQueries({queryKey: ['media']});
+      setIsOpen(false);
+      form.reset();
+      setSelectedVideo(null);
+    },
+    onError: (error) => {
+      console.error("Upload error:", error);
+    },
+  });
+
   const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedVideo(file);
       form.setValue("video", file);
+      // Clear URL if file is selected
+      form.setValue("videoUrl", "");
     }
   };
 
   const onSubmit = (data: FormData) => {
-    console.log("Form submitted:", data);
-    console.log("Selected video:", selectedVideo);
-
-    // Here you would typically send the data to your API
-    // For now, we'll just close the modal
-    setIsOpen(false);
-    form.reset();
-    setSelectedVideo(null);
+    uploadMutation.mutate(data);
   };
 
   const handleClose = () => {
@@ -73,7 +112,6 @@ export function UploadModal() {
       </DialogTrigger>
 
       <DialogContent className="bg-[#131313] border-gray-700 text-white max-w-md p-0 gap-0">
-        {/* Header with close button */}
         <div className="flex justify-end p-3">
           <Button
             variant="ghost"
@@ -85,7 +123,6 @@ export function UploadModal() {
           </Button>
         </div>
 
-        {/* Form Content */}
         <div className="px-6 pb-6 -mt-3">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -102,6 +139,7 @@ export function UploadModal() {
                       <Input
                         placeholder="URL..."
                         {...field}
+                        disabled={!!selectedVideo}
                         className="bg-[#2a2a2a] border-[#404040] text-white placeholder:text-gray-500 focus:border-[#7DD3DD] focus:ring-[#7DD3DD] h-10"
                       />
                     </FormControl>
@@ -114,7 +152,7 @@ export function UploadModal() {
               <FormField
                 control={form.control}
                 name="video"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel className="text-white text-sm font-normal">
                       Video:
@@ -151,14 +189,15 @@ export function UploadModal() {
                 )}
               />
 
-              {/* Submit Button */}
               <div className="pt-2">
                 <Button
                   type="submit"
                   className="w-full bg-[#7DD3DD] hover:bg-[#6bc2cc] text-black font-medium py-2.5 h-auto rounded-md"
-                  disabled={form.formState.isSubmitting}
+                  disabled={form.formState.isSubmitting || uploadMutation.isPending}
                 >
-                  {form.formState.isSubmitting ? "Uploading..." : "Done"}
+                  {form.formState.isSubmitting || uploadMutation.isPending
+                    ? "Uploading..."
+                    : "Done"}
                 </Button>
               </div>
             </form>
