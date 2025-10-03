@@ -9,18 +9,26 @@ import {
   ResponsiveContainer,
   PieLabelRenderProps,
 } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton"; // ✅ Shadcn Skeleton
 
-// 🔹 API Response Type
+// 🔹 API Response Type (array of trips)
+type Trip = {
+  _id: string;
+  country: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  participants: number;
+  image: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type TripApiResponse = {
   statusCode: number;
   success: boolean;
   message: string;
-  data: {
-    totalTrips: number;
-    completedTrips: number;
-    cancelledTrips: number;
-    ongoingTrips: number;
-  };
+  data: Trip[];
 };
 
 // 🔹 Chart Data Type
@@ -53,18 +61,34 @@ export function TripsChart() {
     enabled: !!token,
   });
 
-  console.log(data)
-
   // 🔹 Prepare chart + legend data
   const { chartData, legendData } = useMemo(() => {
     if (!data?.data) return { chartData: [], legendData: [] };
-    const { completedTrips, cancelledTrips, ongoingTrips } = data.data;
-    const total = completedTrips + cancelledTrips + ongoingTrips || 1; // avoid divide by 0
+
+    const now = new Date();
+    let completedTrips = 0;
+    let ongoingTrips = 0;
+    let upcomingTrips = 0;
+
+    data.data.forEach((trip) => {
+      const start = new Date(trip.startDate);
+      const end = new Date(trip.endDate);
+
+      if (end < now) {
+        completedTrips++;
+      } else if (start <= now && end >= now) {
+        ongoingTrips++;
+      } else {
+        upcomingTrips++;
+      }
+    });
+
+    const total = completedTrips + ongoingTrips + upcomingTrips || 1;
 
     const chart: ChartItem[] = [
-      { name: "Completed", value: completedTrips, color: "#22C55E" }, // green
-      { name: "Cancelled", value: cancelledTrips, color: "#EF4444" }, // red
-      { name: "Ongoing", value: ongoingTrips, color: "#3B82F6" }, // blue
+      { name: "Completed", value: completedTrips, color: "#22C55E" },
+      { name: "Ongoing", value: ongoingTrips, color: "#3B82F6" },
+      { name: "Upcoming", value: upcomingTrips, color: "#FACC15" },
     ];
 
     const legend = chart.map((item) => ({
@@ -118,10 +142,26 @@ export function TripsChart() {
     );
   };
 
+  // 🔹 Skeleton Loader
   if (isLoading) {
     return (
-      <div className="bg-[#2A2A2A] rounded-lg p-6 flex items-center justify-center h-[430px]">
-        <p className="text-gray-400">Loading trips chart...</p>
+      <div className="bg-[#2A2A2A] rounded-lg p-6 h-[430px] flex flex-col">
+        <Skeleton className="h-6 w-24 mb-6" />
+        <div className="flex items-center justify-between flex-1">
+          {/* Fake Pie Chart Skeleton */}
+          <Skeleton className="h-[300px] w-[300px] rounded-full" />
+
+          {/* Fake Legend Skeleton */}
+          <div className="flex flex-col space-y-3 ml-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center space-x-3">
+                <Skeleton className="w-3 h-3 rounded-full" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-10 ml-8" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
