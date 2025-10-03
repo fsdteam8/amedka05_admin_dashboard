@@ -12,9 +12,12 @@ import {
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/DashboardHeader/pageHeader";
 import { UploadModal } from "@/components/modal/UploadModal";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactPlayer from "react-player";
 import { EditTripModal } from "@/components/modal/EditTripModal";
+import { useSession } from "next-auth/react";
+import { DeleteDialog } from "@/components/modal/DeleteModal";
+import { toast } from "sonner";
 
 type MediaItem = {
   _id: string;
@@ -25,18 +28,32 @@ type MediaItem = {
 
 function MediaManagement() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   const itemsPerPage = 10;
 
-  // ✅ Fetch media data
+  const { data: session } = useSession();
+  const token = (session?.user as { accessToken?: string } | undefined)
+    ?.accessToken;
+
+  const queryClient = useQueryClient();
+
+  // Fetch media data
   const { data, isLoading, isError } = useQuery({
     queryKey: ["media", currentPage],
     queryFn: async () => {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/event?page=${currentPage}&limit=${itemsPerPage}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/event?page=${currentPage}&limit=${itemsPerPage}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       if (!res.ok) throw new Error("Failed to fetch media");
       return res.json();
     },
+    enabled: !!token,
   });
 
   const mediaData: MediaItem[] = data?.data?.data || [];
@@ -46,11 +63,47 @@ function MediaManagement() {
   const startItem = (meta.page - 1) * meta.limit + 1;
   const endItem = Math.min(meta.page * meta.limit, meta.total);
 
+  // Delete media mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/event/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to delete media");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["media", currentPage] });
+      toast.success(data?.message || "Media delete successfully !");
+      setDeleteModalOpen(false);
+      setSelectedMediaId(null);
+    },
+    onError: (err) => {
+      toast.error(err.message || "Media Not Delete !");
+    },
+  });
+
+  const openDeleteModal = (id: string) => {
+    setSelectedMediaId(id);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedMediaId) deleteMutation.mutate(selectedMediaId);
+  };
+
   const renderPaginationButtons = () => {
     const buttons = [];
     const maxVisiblePages = 5;
 
-    // Previous button
+    // Previous
     buttons.push(
       <Button
         key="prev"
@@ -83,7 +136,7 @@ function MediaManagement() {
       );
     }
 
-    // Next button
+    // Next
     buttons.push(
       <Button
         key="next"
@@ -109,21 +162,17 @@ function MediaManagement() {
   return (
     <div className="text-white min-h-screen p-6">
       <div className="flex justify-between mb-10">
-        <div>
-          <PageHeader
-            title="Media Management"
-            breadcrumb="Plan, track, and manage every event with ease."
-            btnText="Add Category"
-            icon={Plus}
-          />
-        </div>
-        <div>
-          <UploadModal />
-        </div>
+        <PageHeader
+          title="Media Management"
+          breadcrumb="Plan, track, and manage every event with ease."
+          btnText="Add Category"
+          icon={Plus}
+        />
+        <UploadModal />
       </div>
 
       <div className="bg-[#2A2A2A] rounded-lg border border-gray-700">
-        {/* Table Container */}
+        {/* Table */}
         <div className="overflow-x-auto">
           <Table className="w-full">
             <TableHeader>
@@ -179,27 +228,16 @@ function MediaManagement() {
                   </TableCell>
                   <TableCell className="px-4 py-4">
                     <div className="flex items-center justify-end gap-2 mr-7">
-                      {/* <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-1 h-auto text-gray-400 hover:text-white hover:bg-gray-600 transition-colors"
-                      >
-                        <Edit size={16} />
-                      </Button> */}
-                      <EditTripModal eventId = {item?._id}/>
+                      <EditTripModal eventId={item._id} />
                       <Button
                         variant="ghost"
                         size="sm"
                         className="p-1 h-auto text-red-700 hover:text-white hover:bg-gray-600 transition-colors"
+                        onClick={() => openDeleteModal(item._id)}
+                        disabled={deleteMutation.isPending}
                       >
                         <Trash2 size={16} />
                       </Button>
-                      {/* <Button
-                        size="sm"
-                        className="px-3 py-1 bg-cyan-500 text-white hover:bg-cyan-600 transition-colors"
-                      >
-                        Accept
-                      </Button> */}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -218,6 +256,14 @@ function MediaManagement() {
           </div>
         </div>
       </div>
+
+      {/* Delete Modal */}
+      <DeleteDialog
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onConfirm={confirmDelete}
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }

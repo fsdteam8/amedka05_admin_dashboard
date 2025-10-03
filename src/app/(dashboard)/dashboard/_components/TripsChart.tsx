@@ -1,5 +1,7 @@
 "use client";
-import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
+import React, { useMemo } from "react";
 import {
   PieChart,
   Pie,
@@ -8,80 +10,137 @@ import {
   PieLabelRenderProps,
 } from "recharts";
 
-const chartData = [
-  { name: "Guangdong", value: 20, color: "#EF4444" },
-  { name: "Anhui", value: 20, color: "#F59E0B" },
-  { name: "Taiwan", value: 20, color: "#10B981" },
-  { name: "Yunnan", value: 20, color: "#06B6D4" },
-  { name: "Gansu", value: 20, color: "#8B5CF6" },
-  { name: "Sichuan", value: 30, color: "#EC4899" },
-  { name: "Shanxi", value: 30, color: "#F97316" },
-  { name: "Shandong", value: 30, color: "#EAB308" },
-];
+// 🔹 API Response Type
+type TripApiResponse = {
+  statusCode: number;
+  success: boolean;
+  message: string;
+  data: {
+    totalTrips: number;
+    completedTrips: number;
+    cancelledTrips: number;
+    ongoingTrips: number;
+  };
+};
 
-const legendData = [
-  { name: "Guangdong", percentage: "20%", color: "#EF4444" },
-  { name: "Anhui", percentage: "20%", color: "#F59E0B" },
-  { name: "Taiwan", percentage: "20%", color: "#10B981" },
-  { name: "Yunnan", percentage: "20%", color: "#06B6D4" },
-  { name: "Gansu", percentage: "20%", color: "#8B5CF6" },
-  { name: "Sichuan", percentage: "30%", color: "#EC4899" },
-  { name: "Shanxi", percentage: "30%", color: "#F97316" },
-  { name: "Shandong", percentage: "30%", color: "#EAB308" },
-];
+// 🔹 Chart Data Type
+type ChartItem = {
+  name: string;
+  value: number;
+  color: string;
+};
 
 export function TripsChart() {
+  const { data: session } = useSession();
+  const token = (session?.user as { accessToken?: string } | undefined)
+    ?.accessToken;
+
+  const { data, isLoading, isError } = useQuery<TripApiResponse>({
+    queryKey: ["trips", token],
+    queryFn: async () => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/dashboard/trips`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to fetch trips data");
+      return res.json();
+    },
+    enabled: !!token,
+  });
+
+  console.log(data)
+
+  // 🔹 Prepare chart + legend data
+  const { chartData, legendData } = useMemo(() => {
+    if (!data?.data) return { chartData: [], legendData: [] };
+    const { completedTrips, cancelledTrips, ongoingTrips } = data.data;
+    const total = completedTrips + cancelledTrips + ongoingTrips || 1; // avoid divide by 0
+
+    const chart: ChartItem[] = [
+      { name: "Completed", value: completedTrips, color: "#22C55E" }, // green
+      { name: "Cancelled", value: cancelledTrips, color: "#EF4444" }, // red
+      { name: "Ongoing", value: ongoingTrips, color: "#3B82F6" }, // blue
+    ];
+
+    const legend = chart.map((item) => ({
+      ...item,
+      percentage: `${((item.value / total) * 100).toFixed(0)}%`,
+    }));
+
+    return { chartData: chart, legendData: legend };
+  }, [data]);
+
+  // 🔹 Label inside pie slices
   const renderCustomizedLabel = ({
-  cx,
-  cy,
-  midAngle,
-  innerRadius,
-  outerRadius,
-  percent,
-}: PieLabelRenderProps) => {
-  if (
-    cx === undefined ||
-    cy === undefined ||
-    innerRadius === undefined ||
-    outerRadius === undefined ||
-    percent === undefined
-  ) {
-    return null;
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    percent,
+  }: PieLabelRenderProps) => {
+    if (
+      cx === undefined ||
+      cy === undefined ||
+      innerRadius === undefined ||
+      outerRadius === undefined ||
+      percent === undefined
+    )
+      return null;
+
+    const cxNum = Number(cx);
+    const cyNum = Number(cy);
+    const innerNum = Number(innerRadius);
+    const outerNum = Number(outerRadius);
+
+    const RADIAN = Math.PI / 180;
+    const radius = innerNum + (outerNum - innerNum) * 0.5;
+    const x = cxNum + radius * Math.cos(-midAngle * RADIAN);
+    const y = cyNum + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor={x > cxNum ? "start" : "end"}
+        dominantBaseline="central"
+        fontSize={14}
+        fontWeight={600}
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="bg-[#2A2A2A] rounded-lg p-6 flex items-center justify-center h-[430px]">
+        <p className="text-gray-400">Loading trips chart...</p>
+      </div>
+    );
   }
 
-  // ✅ Ensure values are numbers (not strings like "50%")
-  const cxNum = typeof cx === "number" ? cx : parseFloat(cx);
-  const cyNum = typeof cy === "number" ? cy : parseFloat(cy);
-  const innerNum = typeof innerRadius === "number" ? innerRadius : parseFloat(innerRadius);
-  const outerNum = typeof outerRadius === "number" ? outerRadius : parseFloat(outerRadius);
-
-  const RADIAN = Math.PI / 180;
-  const radius = innerNum + (outerNum - innerNum) * 0.5;
-  const x = cxNum + radius * Math.cos(-midAngle * RADIAN);
-  const y = cyNum + radius * Math.sin(-midAngle * RADIAN);
-
-  return (
-    <text
-      x={x}
-      y={y}
-      fill="white"
-      textAnchor={x > cxNum ? "start" : "end"}
-      dominantBaseline="central"
-      fontSize={14}
-      fontWeight={600}
-    >
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  );
-};
+  if (isError) {
+    return (
+      <div className="bg-[#2A2A2A] rounded-lg p-6 flex items-center justify-center h-[430px]">
+        <p className="text-red-500">Failed to load trips data.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#2A2A2A] rounded-lg p-6">
       {/* Header */}
       <div className="mb-6">
         <p className="text-[20px] font-medium leading-[120%] text-white mb-3">
-            Trips
-          </p>
+          Trips
+        </p>
       </div>
 
       <div className="flex items-center justify-between h-[430px]">
@@ -97,7 +156,6 @@ export function TripsChart() {
                 label={renderCustomizedLabel}
                 outerRadius={120}
                 innerRadius={60}
-                fill="#8884d8"
                 dataKey="value"
                 startAngle={90}
                 endAngle={450}
