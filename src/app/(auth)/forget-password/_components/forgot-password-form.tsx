@@ -15,14 +15,17 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-;
 import { Loader2 } from "lucide-react";
 import { useForgetPassword } from "@/hooks/apiCalling";
 
+// ✅ Trimmed Email Validation Schema
 const formSchema = z.object({
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
+  email: z
+    .string()
+    .trim() // 🔹 remove leading/trailing spaces automatically
+    .email({
+      message: "Please enter a valid email address.",
+    }),
 });
 
 const ForgotPasswordForm = () => {
@@ -34,11 +37,12 @@ const ForgotPasswordForm = () => {
     },
   });
 
-
-  // 2. Define a submit handler.
+  // ✅ Submit Handler — trim email before send
   function onSubmit(values: z.infer<typeof formSchema>) {
-    forgetPasswordMutation.mutate(values.email);
+    const cleanEmail = values.email.trim(); // just to be extra safe
+    forgetPasswordMutation.mutate(cleanEmail);
   }
+
   return (
     <div>
       <div className="w-full md:w-[547px] p-3 md:p-7 lg:p-8 rounded-[16px] ">
@@ -63,9 +67,13 @@ const ForgotPasswordForm = () => {
                   </FormLabel>
                   <FormControl>
                     <Input
-                      className="w-full h-[48px] bg-transparent placeholder:text-[#6C757D] text-base font-medium leading-[120%] text-white rounded-[8px] p-4 border border-[#6C6C6C] "
+                      className="w-full h-[48px] bg-transparent placeholder:text-[#6C757D] text-base font-medium leading-[120%] text-white rounded-[8px] p-4 border border-[#6C6C6C]"
                       placeholder="Enter your email ...."
                       {...field}
+                      // ✅ auto-trim input while typing
+                      onChange={(e) =>
+                        field.onChange(e.target.value.replace(/\s+/g, ""))
+                      }
                     />
                   </FormControl>
                   <FormMessage className="text-red-500" />
@@ -75,7 +83,7 @@ const ForgotPasswordForm = () => {
 
             <Button
               disabled={forgetPasswordMutation.isPending}
-              className="flex items-center justify-center gap-2 text-base font-medium text-[#131313] leading-[120%] rounded-[8px] w-full h-[48px] bg-[linear-gradient(135deg,#7DD3DD_0%,#89CFF0_50%,#A7C8F7_100%)] "
+              className="flex items-center justify-center gap-2 text-base font-medium text-[#131313] leading-[120%] rounded-[8px] w-full h-[48px] bg-[linear-gradient(135deg,#7DD3DD_0%,#89CFF0_50%,#A7C8F7_100%)]"
               type="submit"
             >
               {forgetPasswordMutation.isPending ? (
@@ -87,14 +95,12 @@ const ForgotPasswordForm = () => {
                 "Send OTP"
               )}
             </Button>
+
             <p className="flex items-center text-white justify-center gap-1 text-sm font-medium leading-[120%] ">
               Back to
-              <Link
-                href="/login"
-                className="text-white pl-1 hover:underline"
-              >
+              <Link href="/login" className="text-white pl-1 hover:underline">
                 Log In Here Now
-              </Link>{" "}
+              </Link>
             </p>
           </form>
         </Form>

@@ -5,12 +5,17 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { X, Video, Edit } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 
 interface EditTripModalProps {
   eventId: string;
 }
 
 export function EditTripModal({ eventId }: EditTripModalProps) {
+  const [videoUrl, setVideoUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   // Fetch single event by ID
   const { data: singleMedia, isLoading } = useQuery({
     queryKey: ["singleMedia", eventId],
@@ -18,10 +23,38 @@ export function EditTripModal({ eventId }: EditTripModalProps) {
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/event/${eventId}`);
       if (!res.ok) throw new Error("Failed to fetch event");
       const data = await res.json();
-      return data.data; // the "data" field from your API response
+      return data.data;
     },
-    enabled: !!eventId, // only fetch if eventId exists
+    enabled: !!eventId,
   });
+
+  // Populate URL when data loads
+  useEffect(() => {
+    if (singleMedia?.video) {
+      setVideoUrl(singleMedia.video);
+    }
+  }, [singleMedia]);
+
+  // Handle manual URL change
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setVideoUrl(e.target.value);
+  };
+
+  // Handle video file selection
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setVideoUrl(file.name); // show file name in input
+    }
+  };
+
+  // Handle click on drop area
+  const handleClickUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  console.log("single", singleMedia);
 
   return (
     <Dialog>
@@ -54,26 +87,46 @@ export function EditTripModal({ eventId }: EditTripModalProps) {
             <Input
               placeholder="URL..."
               className="bg-[#2a2a2a] border-[#404040] text-white placeholder:text-gray-500 focus:border-[#7DD3DD] focus:ring-[#7DD3DD] h-10"
-              value={isLoading ? "Loading..." : singleMedia?.url || ""}
-              readOnly={isLoading} // prevent editing while loading
+              value={isLoading ? "Loading..." : videoUrl}
+              onChange={handleChange}
+              readOnly={isLoading}
             />
-            <p className="text-red-400 text-xs invisible">Error message</p>
           </div>
 
           {/* Video Upload */}
           <div className="space-y-2">
             <label className="text-white text-sm font-normal">Video:</label>
-            <div className="border-2 border-dashed border-gray-600 rounded-lg py-16 px-8 text-center hover:border-[#7DD3DD] transition-colors relative">
+            <div
+              className="border-2 border-dashed border-gray-600 rounded-lg py-16 px-8 text-center hover:border-[#7DD3DD] transition-colors relative cursor-pointer"
+              onClick={handleClickUpload}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files?.[0];
+                if (file) {
+                  setSelectedFile(file);
+                  setVideoUrl(file.name);
+                }
+              }}
+              onDragOver={(e) => e.preventDefault()}
+            >
+              <input
+                type="file"
+                accept="video/*"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+              />
               <div className="flex flex-col items-center gap-4">
                 <div className="p-3 rounded-lg bg-[#3a3a3a]">
                   <Video size={24} className="text-gray-400" />
                 </div>
                 <p className="text-sm text-gray-400">
-                  Click to upload video or drag and drop
+                  {selectedFile
+                    ? `Selected: ${selectedFile.name}`
+                    : "Click to upload video or drag and drop"}
                 </p>
               </div>
             </div>
-            <p className="text-red-400 text-xs invisible">Error message</p>
           </div>
 
           {/* Submit Button */}

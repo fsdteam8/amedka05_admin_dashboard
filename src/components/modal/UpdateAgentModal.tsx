@@ -44,7 +44,7 @@ const formSchema = z.object({
   designation: z.string().min(2, { message: "Designation is required" }),
   brandName: z.string().min(2, { message: "Brand Name is required" }),
   workingFrom: z.string().min(2, { message: "Working From year is required" }),
-  status: z.string().min(2, { message: "Status is required" }),
+  // status: z.string().min(2, { message: "Status is required" }),
   image: z.any().optional(),
 });
 
@@ -78,7 +78,7 @@ export function UpdateAgentModal({ agentId }: { agentId: string }) {
       designation: "",
       brandName: "",
       workingFrom: "",
-      status: "",
+      // status: "",
       image: null,
     },
   });
@@ -94,7 +94,7 @@ export function UpdateAgentModal({ agentId }: { agentId: string }) {
         designation: agentData.data.designation,
         brandName: agentData.data.brandName,
         workingFrom: agentData.data.workingFrom,
-        status: agentData.data.status,
+        // status: agentData.data.status,
         image: null,
       });
       setPreviewImage(agentData.data.image || null);
@@ -112,7 +112,7 @@ export function UpdateAgentModal({ agentId }: { agentId: string }) {
       formData.append("designation", values.designation);
       formData.append("brandName", values.brandName);
       formData.append("workingFrom", values.workingFrom);
-      formData.append("status", values.status);
+      // formData.append("status", values.status);
 
       if (values.image && values.image[0]) {
         formData.append("image", values.image[0]);
@@ -297,21 +297,6 @@ export function UpdateAgentModal({ agentId }: { agentId: string }) {
                   <FormLabel>Working From</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="Year" className="text-black" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Status */}
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Status" className="text-black" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
