@@ -18,15 +18,18 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-// import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 import Link from "next/link";
 
+// ✅ Updated formSchema: email now ignores spaces
 const formSchema = z.object({
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
+  email: z
+    .string()
+    .email({
+      message: "Please enter a valid email address.",
+    })
+    .transform((val) => val.trim()), // 🔹 Removes leading/trailing spaces
   password: z
     .string()
     .min(6, { message: "Password must be at least 6 characters long." }),
@@ -103,6 +106,7 @@ const LoginForm = () => {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="password"
@@ -160,14 +164,14 @@ const LoginForm = () => {
                     </Label>
                     <FormMessage className="text-red-500" />
                   </FormItem>
-
                 </div>
               )}
             />
+
             <div>
               <Link
                 href="/forget-password"
-                className="text-[#7DD3DD] text-base font-medium leading-[120%] "
+                className="text-[#7DD3DD] text-base font-medium leading-[120%]"
               >
                 Forgot Password?
               </Link>
