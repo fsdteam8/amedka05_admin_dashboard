@@ -9,7 +9,6 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -204,7 +203,7 @@ function TripsManagement() {
                         size="sm"
                         className="p-1 h-auto text-white hover:text-gray-300 hover:bg-white/20 transition-colors"
                       >
-                        <ExternalLink size={16} />
+                        {/* <ExternalLink size={16} /> */}
                       </Button>
                     </div>
                   </div>

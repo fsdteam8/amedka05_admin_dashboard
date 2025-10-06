@@ -136,7 +136,7 @@ function Partnerships() {
                 <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4">
                   Serial No
                 </TableHead>
-                <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4">
+                <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4 text-center">
                   Title
                 </TableHead>
                 <TableHead className="text-gray-300 font-medium bg-gray-700 h-12 px-4 text-center">
