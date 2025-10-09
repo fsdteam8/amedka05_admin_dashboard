@@ -112,7 +112,7 @@ function ContactsManagement() {
         />
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border border-[#1F2937] rounded-lg">
         {contactsQuery.isLoading ? (
           <ContactSkeleton rows={5} />
         ) : contacts.length === 0 ? (
@@ -127,7 +127,7 @@ function ContactsManagement() {
                   : "bg-transparent hover:bg-gray-800/50"
                 }`}
             >
-              <div className="p-6 border-b">
+              <div className="p-6 border-b border-[#1F2937]">
                 <div className="space-y-3">
                   {/* Contact Name */}
                   <h3 className="text-white text-lg font-medium">

@@ -192,7 +192,7 @@ function TripsManagement() {
                     }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80"></div>
-                    <div className="absolute top-4 left-4">
+                    <div className="absolute bottom-4 left-4">
                       <h3 className="text-white text-lg font-semibold drop-shadow-lg">
                         {trip.country}
                       </h3>
