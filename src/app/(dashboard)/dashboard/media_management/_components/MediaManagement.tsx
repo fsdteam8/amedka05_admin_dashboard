@@ -198,7 +198,7 @@ function MediaManagement() {
                   key={item._id}
                   className="border-b border-[#B6B6B633] hover:bg-gray-750"
                 >
-                  <TableCell className="text-gray-200 px-4 py-4">
+                  <TableCell className="text-gray-200 px-4 py-4  ">
                     {item.video ? (
                       <ReactPlayer
                         src={item.video}
@@ -211,7 +211,7 @@ function MediaManagement() {
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-400 underline hover:text-blue-300"
+                        className="text-blue-400 underline hover:text-blue-300 w-[120px] truncate"
                       >
                         {item.url}
                       </a>

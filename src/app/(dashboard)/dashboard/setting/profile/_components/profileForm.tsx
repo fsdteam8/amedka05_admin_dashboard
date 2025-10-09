@@ -247,7 +247,8 @@ export default function ProfileForm() {
                                 </FormItem>
                             )}
                         />
-
+                            <div className="w-full h-[1px] bg-[#1F2937]"></div>
+                            <p>Contact Information</p>
                         <div className="grid grid-cols-12 gap-4">
                             <div className="col-span-6">
                                 <FormField
