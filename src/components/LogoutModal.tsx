@@ -16,7 +16,7 @@ export function LogoutModal({ open, onOpenChange, onLogout, title }: LogoutModal
         <Dialog open={open} onOpenChange={onOpenChange} >
             <DialogContent className="sm:max-w-lg bg-black border-gray-800">
                 <DialogHeader>
-                    <DialogTitle className="text-[#7DD3DD]">{title || "Are you sure you want to log out?"}</DialogTitle>
+                    <DialogTitle className="text-[#7DD3DD] font-medium">{title || "Are you sure you want to log out?"}</DialogTitle>
                 </DialogHeader>
 
                 <DialogFooter className="flex justify-end gap-2">

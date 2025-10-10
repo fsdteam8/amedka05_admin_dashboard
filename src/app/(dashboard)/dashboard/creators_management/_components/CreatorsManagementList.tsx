@@ -368,7 +368,7 @@ function CreatorsManagementList() {
                             <Button
                               size="sm"
                               disabled={updateStatusMutation.isPending}
-                              className="px-3 py-1 bg-cyan-500 text-white hover:bg-cyan-600 transition-colors"
+                              className="px-3 py-1 bg-[#90CFF2] text-white hover:bg-[#90CFF2]/90 transition-colors"
                               onClick={() =>
                                 handleStatusUpdate(creator._id, "accepted")
                               }
