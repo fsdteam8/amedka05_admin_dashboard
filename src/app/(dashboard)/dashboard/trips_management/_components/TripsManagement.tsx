@@ -40,7 +40,7 @@ function TripsManagement() {
   const { data: session } = useSession();
   const token = (session?.user as { accessToken: string })?.accessToken;
 
-  // ✅ API call
+  
   const { data, isLoading } = useQuery({
     queryKey: ["trips", currentPage],
     queryFn: async () => {
@@ -164,7 +164,7 @@ function TripsManagement() {
       </div>
 
       {/* Trip Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {isLoading
           ? Array.from({ length: itemsPerPage }).map((_, i) => (
               <Card
@@ -193,7 +193,7 @@ function TripsManagement() {
                   >
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/80"></div>
                     <div className="absolute bottom-4 left-4">
-                      <h3 className="text-white text-lg font-semibold drop-shadow-lg">
+                      <h3 className="text-white text-lg font-midium drop-shadow-lg">
                         {trip.country}
                       </h3>
                     </div>
