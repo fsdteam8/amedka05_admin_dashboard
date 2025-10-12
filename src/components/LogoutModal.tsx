@@ -17,20 +17,13 @@ interface LogoutModalProps {
   title?: string;
 }
 
-export function LogoutModal({
-  open,
-  onOpenChange,
-  onLogout,
-  title,
-}: LogoutModalProps) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md border border-gray-700 bg-gradient-to-b h-[200px] from-black/70 to-black/40 backdrop-blur-xl text-center rounded-2xl shadow-2xl transition-all duration-300">
-        <DialogHeader>
-          <DialogTitle className="text-[#7DD3DD] text-lg sm:text-xl font-semibold text-center">
-            {title || "Are you sure you want to log out?"}
-          </DialogTitle>
-        </DialogHeader>
+export function LogoutModal({ open, onOpenChange, onLogout, title }: LogoutModalProps) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange} >
+            <DialogContent className="sm:max-w-lg bg-black border-gray-800">
+                <DialogHeader>
+                    <DialogTitle className="text-[#7DD3DD] font-medium">{title || "Are you sure you want to log out?"}</DialogTitle>
+                </DialogHeader>
 
         <DialogFooter>
           <div className="w-full flex justify-center items-center gap-4 mt-4">
