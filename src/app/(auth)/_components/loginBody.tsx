@@ -125,12 +125,12 @@ const LoginForm = () => {
                       />
                       <button
                         type="button"
-                        className="absolute top-3 right-3.5"
+                        className="absolute top-3 right-3.5 "
                       >
                         {showPassword ? (
-                          <Eye onClick={() => setShowPassword(!showPassword)} />
+                          <Eye className=" text-white " onClick={() => setShowPassword(!showPassword)} />
                         ) : (
-                          <EyeOff
+                          <EyeOff className=" text-white "
                             onClick={() => setShowPassword(!showPassword)}
                           />
                         )}
