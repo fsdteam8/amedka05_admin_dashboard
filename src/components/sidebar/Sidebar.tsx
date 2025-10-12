@@ -22,7 +22,7 @@ const navigation = [
   { name: "Creators Management", href: "/dashboard/creators_management", icon: LayoutDashboard },
   { name: "Creators List Page", href: "/dashboard/creators_list", icon: Grip },
   { name: "Request From Agents", href: "/dashboard/request_from_agents", icon: ShoppingBasket },
-  { name: "Agents Management", href: "/dashboard/agents_lists", icon: ShoppingCart },
+  // { name: "Agents Management", href: "/dashboard/agents_lists", icon: ShoppingCart },
   { name: "Trips Management", href: "/dashboard/trips_management", icon: ShoppingCart },
   { name: "Media Management", href: "/dashboard/media_management", icon: MessageSquare },
   { name: "Contacts Management", href: "/dashboard/contacts_management", icon: Scissors },

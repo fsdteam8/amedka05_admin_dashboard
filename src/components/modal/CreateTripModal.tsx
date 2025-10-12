@@ -141,9 +141,9 @@ export function CreateTripModal() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
+        <Button className="flex items-center gap-2 !bg-[#90CFF2] text-[#131313] font-medium text-base h-[48px]">
           <Plus className="w-4 h-4" />
-          Create New Trip
+          Create New Trip 
         </Button>
       </DialogTrigger>
 
